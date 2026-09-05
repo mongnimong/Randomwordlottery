@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘의 랜덤 주제</title>
+<style>
+  :root {
+    --bg: #16161a;
+    --card-fg: #16161a;
+    --panel: #232329;
+    --text: #f4f4f5;
+    --muted: #9a9aa5;
+    --accent: #ff2e63;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", -apple-system, sans-serif;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    min-height: 100vh;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+    padding: 4px;
+    border-radius: 999px;
+  }
+
+  .mode-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+
+  .mode-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .card {
+    position: relative;
+    border-radius: 28px;
+    padding: 56px 24px;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+    overflow: hidden;
+    transition: background .25s ease;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.6);
+  }
+
+  .card .date-badge {
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(0,0,0,0.55);
+    background: rgba(255,255,255,0.35);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .card .action-text {
+    font-size: 34px;
+    font-weight: 800;
+    color: var(--card-fg);
+    line-height: 1.25;
+    word-break: keep-all;
+  }
+
+  .card .subject-text {
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--card-fg);
+    line-height: 1.2;
+    word-break: keep-all;
+  }
+
+  .actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .reroll-btn {
+    border: none;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: transform .1s ease, background .15s ease;
+  }
+
+  .reroll-btn:active {
+    transform: scale(0.98);
+  }
+
+  .reroll-btn:hover {
+    background: #2c2c34;
+  }
+
+  .done-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--panel);
+    padding: 14px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .done-row input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .done-row span {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .done-row.done span {
+    color: var(--accent);
+  }
+
+  .history-toggle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .history-toggle:hover {
+    color: var(--text);
+  }
+
+  .history-list {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .history-list.open {
+    display: flex;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+  }
+
+  .history-item .h-date {
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 78px;
+  }
+
+  .history-item .h-combo {
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .history-item .h-check {
+    font-size: 16px;
+  }
+
+  .empty-history {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>오늘의 랜덤 주제</h1>
+    <div class="mode-toggle">
+      <button id="fixedBtn" type="button">고정</button>
+      <button id="freeBtn" type="button">자유</button>
+    </div>
+  </header>
+
+  <div class="card" id="card">
+    <div class="date-badge" id="dateBadge"></div>
+    <div class="action-text" id="actionText">-</div>
+    <div class="subject-text" id="subjectText">-</div>
+  </div>
+
+  <div class="actions-row">
+    <button class="reroll-btn" id="rerollBtn" type="button">다시 뽑기</button>
+    <label class="done-row" id="doneRow">
+      <input type="checkbox" id="doneCheckbox">
+      <span id="doneLabel">그림 완료</span>
+    </label>
+  </div>
+
+  <button class="history-toggle" id="historyToggle" type="button">히스토리 보기 ▾</button>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<script>
+  // ---- 데이터: 여기서 직접 추가/수정하세요 ----
+  const actions = [
+    "트월킹하는", "명상하는", "도망치는", "낚시하는", "기지개 켜는",
+    "몰래 훔쳐보는", "넘어질 뻔한", "자랑하는", "눈치보는", "잠꼬대하는",
+    "헤드뱅잉하는", "졸고있는", "삐친", "속이 시원한", "물구나무서는",
+    "까치발로 서있는", "딸꾹질하는", "머리를 긁적이는", "발레하는", "탭댄스를 추는",
+    "공중제비를 도는", "술에 취해 비틀거리는", "뒷걸음질 치는", "손가락을 튕기는", "코를 후비는",
+    "어깨춤을 추다 어깨가 빠진", "휘파람 부는", "무언가 몰래 먹고있는", "이불킥하는", "담배피는"
+  ];
+
+  const subjects = [
+    "벌꿀오소리", "문어", "가로등", "선인장", "택배상자",
+    "유령", "로봇청소기", "홍학", "곰팡이", "고구마"
+  ];
+
+  // 카드 배경으로 쓸 쨍한 포인트 컬러 팔레트
+  const palette = [
+    "#FFD400", "#FF2E63", "#00E5A0", "#00C2FF", "#FF6B00",
+    "#B967FF", "#FF3E9A", "#7CFF6B", "#FFEA00", "#00FFD1"
+  ];
+
+  const STORAGE_HISTORY = "rwl_history";
+  const STORAGE_MODE = "rwl_mode";
+
+  let mode = localStorage.getItem(STORAGE_MODE) || "fixed";
+  let currentCombo = null; // { action, subject }
+  let currentDone = false;
+
+  function todayStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_HISTORY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(arr) {
+    localStorage.setItem(STORAGE_HISTORY, JSON.stringify(arr));
+  }
+
+  function getTodayEntry() {
+    return getHistory().find(e => e.date === todayStr());
+  }
+
+  function upsertToday(combo, done) {
+    const history = getHistory();
+    const date = todayStr();
+    const comboText = `${combo.action} ${combo.subject}`;
+    const idx = history.findIndex(e => e.date === date);
+    if (idx >= 0) {
+      history[idx].combo = comboText;
+      history[idx].done = done;
+    } else {
+      history.unshift({ date, combo: comboText, done });
+    }
+    saveHistory(history);
+  }
+
+  function randomCombo() {
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    const subject = subjects[Math.floor(Math.random() * subjects.length)];
+    return { action, subject };
+  }
+
+  function hashStr(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    }
+    return h;
+  }
+
+  function colorForCombo(combo) {
+    const key = `${combo.action} ${combo.subject}`;
+    const idx = hashStr(key) % palette.length;
+    return palette[idx];
+  }
+
+  function parseCombo(comboText) {
+    const parts = comboText.split(" ");
+    const subject = parts[parts.length - 1];
+    const action = parts.slice(0, -1).join(" ");
+    return { action, subject };
+  }
+
+  // ---- 렌더링 ----
+  function renderCard() {
+    const card = document.getElementById("card");
+    const actionText = document.getElementById("actionText");
+    const subjectText = document.getElementById("subjectText");
+    const dateBadge = document.getElementById("dateBadge");
+
+    card.style.background = colorForCombo(currentCombo);
+    actionText.textContent = currentCombo.action;
+    subjectText.textContent = currentCombo.subject;
+    dateBadge.textContent = todayStr();
+
+    const doneCheckbox = document.getElementById("doneCheckbox");
+    const doneRow = document.getElementById("doneRow");
+    doneCheckbox.checked = currentDone;
+    doneRow.classList.toggle("done", currentDone);
+  }
+
+  function renderMode() {
+    document.getElementById("fixedBtn").classList.toggle("active", mode === "fixed");
+    document.getElementById("freeBtn").classList.toggle("active", mode === "free");
+    document.getElementById("rerollBtn").style.display = mode === "free" ? "block" : "none";
+  }
+
+  function renderHistory() {
+    const list = document.getElementById("historyList");
+    const history = getHistory();
+    if (history.length === 0) {
+      list.innerHTML = '<div class="empty-history">아직 기록이 없어요</div>';
+      return;
+    }
+    list.innerHTML = history.map(e => `
+      <div class="history-item">
+        <span class="h-date">${e.date}</span>
+        <span class="h-combo">${e.combo}</span>
+        <span class="h-check">${e.done ? "✅" : "⬜"}</span>
+      </div>
+    `).join("");
+  }
+
+  function initFixedMode() {
+    const entry = getTodayEntry();
+    if (entry) {
+      currentCombo = parseCombo(entry.combo);
+      currentDone = !!entry.done;
+    } else {
+      currentCombo = randomCombo();
+      currentDone = false;
+      upsertToday(currentCombo, currentDone);
+    }
+  }
+
+  function initFreeMode() {
+    currentCombo = randomCombo();
+    currentDone = false;
+  }
+
+  function switchMode(newMode) {
+    mode = newMode;
+    localStorage.setItem(STORAGE_MODE, mode);
+    if (mode === "fixed") {
+      initFixedMode();
+    } else {
+      initFreeMode();
+    }
+    renderMode();
+    renderCard();
+    renderHistory();
+  }
+
+  function reroll() {
+    if (mode !== "free") return;
+    currentCombo = randomCombo();
+    currentDone = false;
+    renderCard();
+  }
+
+  function toggleDone() {
+    currentDone = !currentDone;
+    upsertToday(currentCombo, currentDone);
+    renderCard();
+    renderHistory();
+  }
+
+  document.getElementById("fixedBtn").addEventListener("click", () => switchMode("fixed"));
+  document.getElementById("freeBtn").addEventListener("click", () => switchMode("free"));
+  document.getElementById("rerollBtn").addEventListener("click", reroll);
+  document.getElementById("doneRow").addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleDone();
+  });
+  document.getElementById("historyToggle").addEventListener("click", () => {
+    const list = document.getElementById("historyList");
+    const open = list.classList.toggle("open");
+    document.getElementById("historyToggle").textContent = open ? "히스토리 숨기기 ▴" : "히스토리 보기 ▾";
+  });
+
+  // ---- 초기화 ----
+  if (mode === "fixed") {
+    initFixedMode();
+  } else {
+    initFreeMode();
+  }
+  renderMode();
+  renderCard();
+  renderHistory();
+</script>
+</body>
+</html>
