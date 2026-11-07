@@ -9,7 +9,7 @@ PAIR = re.compile(r'(-?\d*\.?\d+) (-?\d*\.?\d+)')
 
 def groups(fname):
     s = open(f'{D}/{fname}').read()
-    return {gid: dict(re.findall(r'<path id="[^"]*?-?(line|fill|inside|tongue|teeth)" fill="[^"]+" fill-rule="evenodd" d="([^"]+)"', body))
+    return {gid: dict(re.findall(r'<path id="[^"]*?-?(line|fill|inside|tongue|teeth|groove)" fill="[^"]+" fill-rule="evenodd" d="([^"]+)"', body))
             for gid, body in re.findall(r'<g id="([^"]+)">\n(.*?)  </g>', s, re.S)}
 
 
@@ -77,8 +77,14 @@ mg, (mtx, mty, ms) = T['mouth']
 mi = bounds([tf(mg['inside'], mtx, mty, ms)])
 mcx, mcy = (mi[0] + mi[2]) / 2, (mi[1] + mi[3]) / 2
 px, py = data['mouth']['x'], data['mouth']['y']
-MOUTHS = [('merong', '메롱', 'mouth_merong.svg'), ('teeth', '이빨줄', 'mouth_teeth.svg'), ('wang', '와앙', 'mouth_wang.svg'),
-          ('fang', '크앙', 'mouth_fang.svg'), ('o', '오', 'mouth_o.svg'), ('hehe', '헤헤', 'mouth_hehe.svg')]
+# 몽니님 손그림 입 6종(외곽 다듬은 버전). 그림끼리의 크기 차이는 그대로 두고,
+# 가장 큰 '메롱 큰혀'가 이전 메롱 입과 같은 너비가 되도록 한 배율을 모두에 쓴다.
+MOUTHS = [('tongue_big', '메롱 큰혀', 'mouth2_tongue_big.svg'), ('tongue_v', '짓궂은 V', 'mouth2_tongue_v.svg'),
+          ('tongue_bunny', '토끼이빨', 'mouth2_tongue_bunny.svg'), ('grin', '활짝 미소', 'mouth2_grin.svg'),
+          ('shark', '상어 이빨', 'mouth2_shark.svg'), ('gappy', '이 빠진 입', 'mouth2_gappy.svg')]
+mb = bounds([mg['line']]); tb = bounds([groups('mouth2_tongue_big.svg')['mouth']['line']])
+ms = ms * (mb[2] - mb[0]) / (tb[2] - tb[0])
+data['mouth']['lw'] = round(22 * ms, 2)          # 손그림 입 테두리 22px
 data['mouths'] = {}
 for key, name, fn in MOUTHS:
     g = groups(fn)['mouth']

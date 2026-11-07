@@ -136,7 +136,7 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
       <h2>혀색</h2>
       <div class="row" id="tgSw"></div>
       <div class="row"><button class="btn small" data-sel="mouth">입 고르기</button></div>
-      <p class="hint">이빨은 흰색으로 고정이에요. 혀가 없는 입(이빨줄, 와앙)은 입안색만 바뀌어요.</p>
+      <p class="hint">이빨은 흰색으로 고정이에요. 혀가 없는 입(활짝 미소, 상어 이빨, 이 빠진 입)은 입안색만 바뀌어요.</p>
     </div>
 
     <div class="pane" data-pane="out" hidden>
@@ -220,7 +220,7 @@ let S0;
 function defaults(){const P=k=>({x:MX(PARTS[k].x),y:MY(PARTS[k].y),scale:K,rot:0});
   return {body:P('body'),handL:P('handL'),handR:P('handR'),legL:P('legL'),legR:P('legR'),mouth:P('mouth'),
     tex:{x:500,y:500,scale:1,rot:0},mat:0,tile:false,shape:'artist',
-    mouthType:'merong',handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#F35C8A',bg:'clear',
+    mouthType:'tongue_big',handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#E0668A',bg:'clear',
     link:{hand:true,leg:true},sel:'body'};}
 let st=defaults();
 
@@ -242,7 +242,7 @@ function drawBody(c,k){c.save();xf(c,st.body,k);
   c.restore();}
 function drawMouthType(c,type,o){const P=MPATH[type];
   outline(c,P.inside,'mouth',o);if(P.tongue)outline(c,P.tongue,'mouth',o);
-  c.fillStyle=st.inside;c.fill(P.inside);if(P.tongue){c.fillStyle=st.tongue;c.fill(P.tongue);}c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
+  c.fillStyle=st.inside;c.fill(P.inside);if(P.tongue){c.fillStyle=st.tongue;c.fill(P.tongue);}if(P.groove){c.fillStyle=INK;c.fill(P.groove,'evenodd');}c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
 function drawMouth(c,k){c.save();xf(c,st.mouth,k);drawMouthType(c,st.mouthType,st.mouth);c.restore();}
 function bbox(key){const o=st[key];if(key==='tex'){const m=mats[st.mat];return m.img?{w:m.img.width,h:m.img.height}:null;}
   if(key==='body'&&st.shape!=='artist')return{w:620,h:620};if(key==='mouth'){const m=PARTS.mouths[st.mouthType];return{w:m.w+30,h:m.h+30};}return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
@@ -321,7 +321,7 @@ function renderShapes(){const gr=$('#shapeGrid');gr.innerHTML='';
 /* ---------- 입 모양 그리드 ---------- */
 function renderMouths(){const gr=$('#mouthGrid');gr.innerHTML='';
   for(const k in PARTS.mouths){const m=PARTS.mouths[k];const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',k===st.mouthType);b.title=m.name;
-    b.appendChild(mk(120,120,g=>{g.translate(60,58);const s=96/Math.max(PARTS.mouths.merong.w,m.w,m.h);const o={scale:s};g.scale(s,s);drawMouthType(g,k,o);}));
+    b.appendChild(mk(120,120,g=>{g.translate(60,58);const s=100/Math.max(...Object.values(PARTS.mouths).map(v=>v.w));const o={scale:s};g.scale(s,s);drawMouthType(g,k,o);}));
     const nm=document.createElement('span');nm.className='nm';nm.textContent=m.name;b.appendChild(nm);
     b.onclick=()=>{st.mouthType=k;select('mouth');renderMouths();};gr.appendChild(b);}}
 
@@ -349,7 +349,7 @@ function drawSwatches(){
   swatchRow('#handSw',TONES,()=>st.handColor,c=>st.handColor=c);
   swatchRow('#legSw',[['살구','#F9C2A9'],...TONES.slice(1)],()=>st.legColor,c=>st.legColor=c);
   swatchRow('#inSw',[['먹색','#3A3542'],['와인','#7A1F31'],['남색','#1F2A5C'],['가지','#3C1F4F']],()=>st.inside,c=>st.inside=c);
-  swatchRow('#tgSw',[['핑크','#F35C8A'],['연분홍','#F7A8BB'],['보라','#8E4FD6'],['하늘','#4FBBE6'],['노랑','#F4D84A']],()=>st.tongue,c=>st.tongue=c);}
+  swatchRow('#tgSw',[['분홍','#E0668A'],['연분홍','#F7A8BB'],['보라','#8E4FD6'],['하늘','#4FBBE6'],['노랑','#F4D84A']],()=>st.tongue,c=>st.tongue=c);}
 
 /* ---------- 저장소: 내 틀 + 비교 보드 (로그인 시 계정, 아니면 이 브라우저) ---------- */
 let col=null,boardItems=[];
@@ -409,7 +409,7 @@ function showModal(html,hint){$('#mBody').innerHTML=html;$('#mHint').textContent
 $('#mClose').onclick=()=>$('#modal').hidden=true;
 $('#rand').onclick=()=>{const pick=a=>a[Math.floor(Math.random()*a.length)];const keep=st.bg;st=defaults();st.bg=keep;
   st.shape=pick([...BASIC,...custom]).id;st.mat=Math.floor(Math.random()*mats.length);coverTex();
-  st.handColor=pick(TONES)[1];st.legColor=st.handColor;st.tongue=pick(['#F35C8A','#F7A8BB','#8E4FD6','#4FBBE6']);st.inside=pick(['#3A3542','#3A3542','#7A1F31','#1F2A5C']);
+  st.handColor=pick(TONES)[1];st.legColor=st.handColor;st.tongue=pick(['#E0668A','#F7A8BB','#8E4FD6','#4FBBE6']);st.inside=pick(['#3A3542','#3A3542','#7A1F31','#1F2A5C']);
   st.mouthType=pick(Object.keys(PARTS.mouths));renderMouths();setScale('handL',K*(0.85+Math.random()*.35));setScale('legL',K*(0.85+Math.random()*.3));renderShapes();renderMats();drawSwatches();draw();};
 $('#reset').onclick=()=>{const keep=st.bg;st=defaults();st.bg=keep;renderMouths();renderShapes();renderMats();drawSwatches();draw();};
 
