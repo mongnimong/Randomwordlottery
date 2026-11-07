@@ -18,14 +18,18 @@
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
 .app{max-width:1100px;margin:0 auto;display:grid;gap:20px;grid-template-columns:minmax(0,1fr) 390px;align-items:start}
-@media (max-width:880px){.app{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:880px){.app{grid-template-columns:minmax(0,1fr)}
+  .stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px 10px;gap:8px;box-shadow:0 10px 12px -12px rgba(0,0,0,.25)}
+  .board{max-width:min(100%,44vh)}
+  .ctrl{padding:8px 12px;gap:6px}.ctrl .hint{display:none}
+  header p{display:none}}
 header{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 h1{font-family:var(--f-display);font-weight:400;font-size:32px;margin:0}
 header p{margin:0;color:var(--muted)}
 .stage{display:flex;flex-direction:column;gap:12px;min-width:0}
 .board{position:relative;width:100%;max-width:640px;margin:0 auto;aspect-ratio:1;border-radius:18px;overflow:hidden;background:#ffffff;box-shadow:0 0 0 1px var(--line)}
 .board.clear{background:repeating-conic-gradient(#e7e5ea 0 25%,#ffffff 0 50%) 0 0/24px 24px}
-#cv{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#cv{width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab}
 .ctrl{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .label{font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:600}
@@ -84,7 +88,7 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
       <div class="slide"><span>크기</span><input type="range" id="sz" min="20" max="300" value="100"><span id="szv">100%</span></div>
       <div class="slide"><span>회전</span><input type="range" id="rt" min="-180" max="180" value="0"><span id="rtv">0°</span></div>
       <label class="check" id="linkRow" hidden><input type="checkbox" id="link" checked> <span id="linkTxt">두 손 같이 움직이기</span></label>
-      <p class="hint">파츠를 탭하면 선택돼요. 끌어서 옮기고, 두 손가락으로 벌리거나 돌리면 크기·회전이 바뀌어요.</p>
+      <p class="hint">손·발·입은 바로 잡아서 옮겨요. 몸통과 재료는 위에서 "몸통"이나 "재료"를 고른 뒤 움직여요. 빈 곳을 쓸면 화면이 내려가요.</p>
     </div>
   </section>
 
@@ -222,7 +226,7 @@ function defaults(){const P=k=>({x:MX(PARTS[k].x),y:MY(PARTS[k].y),scale:K,rot:0
   return {body:P('body'),handL:P('handL'),handR:P('handR'),legL:P('legL'),legR:P('legR'),mouth:P('mouth'),
     tex:{x:500,y:500,scale:1,rot:0},mat:0,tile:false,shape:'artist',
     mouthType:'tongue_big',handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#E0668A',bg:'clear',
-    link:{hand:true,leg:true},sel:'body'};}
+    link:{hand:true,leg:true},sel:'handL'};}
 let st=defaults();
 
 /* ---------- 그리기 ---------- */
@@ -293,8 +297,20 @@ function cpos(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*
 function gstart(){const o=obj(st.sel),a=[...ptrs.values()];
   if(a.length>=2)g0={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),a:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x),s:o.scale,r:o.rot,cx:(a[0].x+a[1].x)/2,cy:(a[0].y+a[1].y)/2};
   else if(a.length===1)g0={px:a[0].x,py:a[0].y};else g0=null;}
-cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const pt=cpos(e);ptrs.set(e.pointerId,pt);
-  if(ptrs.size===1&&st.sel!=='tex'){const h=hit(pt);if(h)st.sel=h;draw();}gstart();});
+// 끌 수 있는 대상: 손·발·입은 바로 잡히고, 몸통·재료는 아래에서 직접 골랐을 때만 잡힌다.
+// 그 밖(빈 곳, 고르지 않은 몸통)은 화면 스크롤로 넘긴다.
+function grabTarget(pt){const h=hit(pt);
+  if(h&&h!=='body')return h;
+  if(st.sel==='tex')return'tex';
+  if(st.sel==='body'&&h==='body')return'body';
+  return null;}
+cv.addEventListener('touchstart',e=>{const r=cv.getBoundingClientRect(),t=e.touches[0];
+  if(e.touches.length>1&&ptrs.size){e.preventDefault();return;}
+  const pt={x:(t.clientX-r.left)*1000/r.width,y:(t.clientY-r.top)*1000/r.height};
+  if(grabTarget(pt))e.preventDefault();},{passive:false});
+cv.addEventListener('pointerdown',e=>{const pt=cpos(e);
+  if(ptrs.size===0){const g=grabTarget(pt);if(!g)return;st.sel=g;draw();}
+  cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,pt);gstart();});
 cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId)||!g0)return;ptrs.set(e.pointerId,cpos(e));const a=[...ptrs.values()];
   if(a.length>=2&&g0.d){const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),an=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x),cx=(a[0].x+a[1].x)/2,cy=(a[0].y+a[1].y)/2;
     setScale(st.sel,Math.max(.05,g0.s*d/g0.d));setRot(st.sel,g0.r+an-g0.a);move(st.sel,cx-g0.cx,cy-g0.cy);g0.cx=cx;g0.cy=cy;}
