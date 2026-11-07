@@ -151,6 +151,14 @@ for (y0, y1) in split(rows):
                     mh = float(np.median([t['h'] for t in grp]))
                     for t in grp:
                         t['W'], t['H'] = mw, mh
+            if key == 'gappy' and not row:
+                # 이 빠진 입 아랫니: 간격을 고르게, 양 끝 이빨은 아래로 내려 짧게 보이게
+                n_ = len(ts)
+                a_, b_ = ts[0]['cx'], ts[-1]['cx']
+                for i, t in enumerate(ts):
+                    t['cx'] = a_ + (b_ - a_) * i / max(1, n_ - 1)
+                    if i in (0, n_ - 1):
+                        t['drop'] = t['H'] * 0.72          # 아래로 내려서 입 테두리 밑으로 일부 숨김
             if sym and key != 'gappy':
                 pos = [t['cx'] for t in ts]
                 for i, t in enumerate(ts):
@@ -160,7 +168,7 @@ for (y0, y1) in split(rows):
                 col = np.where(inside[:, min(max(x, 0), ww - 1)])[0]
                 if not len(col):
                     continue
-                edge = col[0] if row else col[-1]
+                edge = (col[0] if row else col[-1]) + t.get('drop', 0)
                 s = 1 if row else -1
                 w2, L = t['W'] / 2, t['H']
                 X = lambda v: v * 2
