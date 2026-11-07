@@ -74,6 +74,10 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
   .board{max-width:clamp(150px,calc(52vh - 140px),100%);border-radius:14px}
   .ctrl{padding:6px 10px;gap:4px;border-radius:12px}
   .ctrl .hint,.ctrl .label{display:none}
+  .ctrl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:center}
+  .ctrl>.row,.ctrl>.check{grid-column:1/-1}
+  .ctrl .slide{grid-template-columns:auto minmax(0,1fr) 36px;gap:6px}
+  .ctrl .slide span:last-child{font-size:11px}
   .seg button{padding:4px 10px;font-size:13px}
   .slide{grid-template-columns:34px minmax(0,1fr) 40px;font-size:13px}
   .check{font-size:13px}
@@ -253,7 +257,7 @@ function outline(c,path,key,o){c.lineJoin='round';c.lineCap='round';c.strokeStyl
 function drawLimb(c,key,color,k){c.save();const o=st[key];xf(c,o,k);const P=PATH[key];outline(c,P.fill,key,o);c.fillStyle=color;c.fill(P.fill,'evenodd');c.restore();}
 function drawBody(c,k){c.save();xf(c,st.body,k);
   const p=st.shape==='artist'?PATH.body.fill:shapePath(st.shape);
-  if(p){outline(c,p,'body',st.body);c.clip(p,'evenodd');drawMat(c,k);}
+  if(p){outline(c,p,'body',st.body);c.clip(p,st.shape==='artist'?'evenodd':'nonzero');drawMat(c,k);}
   c.restore();}
 function drawMouthType(c,type,o){const P=MPATH[type];
   outline(c,P.inside,'mouth',o);if(P.tongue)outline(c,P.tongue,'mouth',o);
