@@ -96,7 +96,7 @@ for (y0, y1) in split(rows):
         hh, ww = reg0.shape
         xs_ = np.where(reg0.any(axis=0))[0]
         cx = (xs_[0] + xs_[-1]) / 2
-        reg = symmetric(reg0, cx, 6) if sym else smooth(reg0, 6)
+        reg = symmetric(reg0, cx, 9) if sym else smooth(reg0, 9)
         inside = erode(reg, RING)
 
         # 혀: 대칭 U자 + 가운데 곧은 홈
@@ -136,9 +136,14 @@ for (y0, y1) in split(rows):
             ts = sorted([t for t in info if t['top'] == row], key=lambda t: t['cx'])
             if not ts:
                 continue
-            major = sum(t['sharp'] for t in ts) * 2 >= len(ts)      # 줄마다 이빨 모양 통일
-            for t in ts:
-                t['sharp'] = major
+            # 이빨 모양: 입마다 해석대로 (상어=뾰족, V=양 끝만 뾰족, 나머지=둥근)
+            for i, t in enumerate(ts):
+                if key == 'shark':
+                    t['sharp'] = True
+                elif key == 'tongue_v':
+                    t['sharp'] = i in (0, len(ts) - 1)
+                else:
+                    t['sharp'] = False
             for sharp in (True, False):
                 grp = [t for t in ts if t['sharp'] == sharp]
                 if grp:

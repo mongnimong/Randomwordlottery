@@ -77,20 +77,22 @@ mg, (mtx, mty, ms) = T['mouth']
 mi = bounds([tf(mg['inside'], mtx, mty, ms)])
 mcx, mcy = (mi[0] + mi[2]) / 2, (mi[1] + mi[3]) / 2
 px, py = data['mouth']['x'], data['mouth']['y']
-# 몽니님 손그림 입 6종(외곽 다듬은 버전). 그림끼리의 크기 차이는 그대로 두고,
-# 가장 큰 '메롱 큰혀'가 이전 메롱 입과 같은 너비가 되도록 한 배율을 모두에 쓴다.
-MOUTHS = [('tongue_big', '메롱 큰혀', 'mouth2_tongue_big.svg'), ('tongue_v', '짓궂은 V', 'mouth2_tongue_v.svg'),
-          ('tongue_bunny', '토끼이빨', 'mouth2_tongue_bunny.svg'), ('grin', '활짝 미소', 'mouth2_grin.svg'),
-          ('shark', '상어 이빨', 'mouth2_shark.svg'), ('gappy', '이 빠진 입', 'mouth2_gappy.svg')]
-mb = bounds([mg['line']]); tb = bounds([groups('mouth2_tongue_big.svg')['mouth']['line']])
-ms = ms * (mb[2] - mb[0]) / (tb[2] - tb[0])
-data['mouth']['lw'] = round(22 * ms, 2)          # 손그림 입 테두리 22px
+# 몽니님 손그림 입 6종을 정돈한 버전(mouth3). 6개 모두 이전 메롱 입과 같은 너비로 맞춘다.
+MOUTHS = [('tongue_big', '메롱 큰혀', 'mouth3_tongue_big.svg'), ('tongue_v', '짓궂은 V', 'mouth3_tongue_v.svg'),
+          ('tongue_bunny', '토끼이빨', 'mouth3_tongue_bunny.svg'), ('grin', '활짝 미소', 'mouth3_grin.svg'),
+          ('shark', '상어 이빨', 'mouth3_shark.svg'), ('gappy', '이 빠진 입', 'mouth3_gappy.svg')]
+mb = bounds([mg['line']])
+WANT = (mb[2] - mb[0]) * ms                       # 목표 너비(조립 좌표)
 data['mouths'] = {}
 for key, name, fn in MOUTHS:
     g = groups(fn)['mouth']
+    lb = bounds([g['line']])
+    sk = WANT / (lb[2] - lb[0])
+    if key == 'tongue_big':
+        data['mouth']['lw'] = round(22 * sk, 2)   # 입 테두리 굵기(모든 입 공통)
     b = bounds([g['inside']])
-    tx, ty = mcx - (b[0] + b[2]) / 2 * ms, mcy - (b[1] + b[3]) / 2 * ms
-    mv = {k: tf(d, tx - px, ty - py, ms) if False else tf(tf(d, tx, ty, ms), -px, -py, 1) for k, d in g.items()}
+    tx, ty = mcx - (b[0] + b[2]) / 2 * sk, mcy - (b[1] + b[3]) / 2 * sk
+    mv = {k: tf(tf(d, tx, ty, sk), -px, -py, 1) for k, d in g.items()}
     mv.setdefault('tongue', '')
     x0, y0, x1, y1 = bounds([mv['line'], mv['inside']] + ([mv['tongue']] if mv['tongue'] else []))
     data['mouths'][key] = {'name': name, 'w': round(max(abs(x0), abs(x1)) * 2, 1), 'h': round(max(abs(y0), abs(y1)) * 2, 1), 'p': mv}
