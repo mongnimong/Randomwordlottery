@@ -78,6 +78,10 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
   .slide{grid-template-columns:34px minmax(0,1fr) 40px;font-size:13px}
   .check{font-size:13px}
   header p{display:none}
+  /* 탭 메뉴도 캔버스 바로 밑에 고정 (--stage-h는 스크립트가 캔버스 영역 높이로 채움) */
+  .panel{overflow:clip}
+  .tabs{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--stage-h,0px));z-index:4;background:var(--surface);border-radius:14px 14px 0 0}
+  .tabs button{padding:9px 4px;font-size:17px}
 }
 </style>
 
@@ -326,7 +330,14 @@ cv.addEventListener('pointerup',pend);cv.addEventListener('pointercancel',pend);
 cv.addEventListener('wheel',e=>{e.preventDefault();const o=obj(st.sel);setScale(st.sel,Math.max(.05,o.scale*(e.deltaY<0?1.05:1/1.05)));draw();},{passive:false});
 
 /* ---------- 탭 ---------- */
-$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));$$('.pane').forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab);
+// 휴대폰: 고정된 캔버스 영역 높이를 탭 메뉴 위치로 넘긴다
+const stageEl=$('.stage'),mqMobile=matchMedia('(max-width:880px)');
+function syncStageH(){document.documentElement.style.setProperty('--stage-h',mqMobile.matches?stageEl.offsetHeight+'px':'0px');}
+try{new ResizeObserver(syncStageH).observe(stageEl);}catch(e){}addEventListener('resize',syncStageH);syncStageH();
+// 탭을 바꾸면 새 탭 내용이 탭 메뉴 바로 밑에서 시작하도록 스크롤
+function scrollPaneTop(){if(!mqMobile.matches)return;const panel=$('.panel');
+  const want=panel.getBoundingClientRect().top+scrollY-stageEl.offsetHeight;if(scrollY>want)scrollTo({top:want});}
+$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));$$('.pane').forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab);scrollPaneTop();
   const t=b.dataset.tab;if(t==='limb'&&!GROUP(st.sel))select('handL');if(t==='mouth')select('mouth');if(t==='body'&&!['body','tex'].includes(st.sel))select('body');if(t==='out')renderBoard();});
 
 /* ---------- 몸통 틀 그리드 ---------- */
