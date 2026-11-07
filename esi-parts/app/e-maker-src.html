@@ -129,12 +129,14 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
     </div>
 
     <div class="pane" data-pane="mouth" hidden>
+      <h2>입 모양</h2>
+      <div class="grid" id="mouthGrid" style="grid-template-columns:repeat(3,1fr)"></div>
       <h2>입안색</h2>
       <div class="row" id="inSw"></div>
       <h2>혀색</h2>
       <div class="row" id="tgSw"></div>
       <div class="row"><button class="btn small" data-sel="mouth">입 고르기</button></div>
-      <p class="hint">이빨은 흰색으로 고정이에요.</p>
+      <p class="hint">이빨은 흰색으로 고정이에요. 혀가 없는 입(이빨줄, 와앙)은 입안색만 바뀌어요.</p>
     </div>
 
     <div class="pane" data-pane="out" hidden>
@@ -166,7 +168,8 @@ const cv=$('#cv'),ctx=cv.getContext('2d');
 const INK='#3A3542';
 const K=1.35, MX=x=>500+(x-400)*K, MY=y=>540+(y-330)*K;   // 조립 좌표 → 캔버스 좌표
 const PATH={};
-for(const k in PARTS){PATH[k]={};for(const n in PARTS[k].p)PATH[k][n]=new Path2D(PARTS[k].p[n]);}
+for(const k in PARTS){if(k==='mouths')continue;PATH[k]={};for(const n in PARTS[k].p)PATH[k][n]=new Path2D(PARTS[k].p[n]);}
+const MPATH={};for(const k in PARTS.mouths){MPATH[k]={};for(const n in PARTS.mouths[k].p)if(PARTS.mouths[k].p[n])MPATH[k][n]=new Path2D(PARTS.mouths[k].p[n]);}
 const LABEL={tex:'재료',body:'몸통',handL:'손',handR:'손',legL:'발',legR:'발',mouth:'입'};
 const PAIR={handL:'handR',handR:'handL',legL:'legR',legR:'legL'};
 const GROUP=k=>k.startsWith('hand')?'hand':k.startsWith('leg')?'leg':null;
@@ -217,7 +220,7 @@ let S0;
 function defaults(){const P=k=>({x:MX(PARTS[k].x),y:MY(PARTS[k].y),scale:K,rot:0});
   return {body:P('body'),handL:P('handL'),handR:P('handR'),legL:P('legL'),legR:P('legR'),mouth:P('mouth'),
     tex:{x:500,y:500,scale:1,rot:0},mat:0,tile:false,shape:'artist',
-    handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#F35C8A',bg:'clear',
+    mouthType:'merong',handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#F35C8A',bg:'clear',
     link:{hand:true,leg:true},sel:'body'};}
 let st=defaults();
 
@@ -237,10 +240,12 @@ function drawBody(c,k){c.save();xf(c,st.body,k);
   const p=st.shape==='artist'?PATH.body.fill:shapePath(st.shape);
   if(p){outline(c,p,'body',st.body);c.clip(p,'evenodd');drawMat(c,k);}
   c.restore();}
-function drawMouth(c,k){c.save();xf(c,st.mouth,k);const P=PATH.mouth;
-  outline(c,P.inside,'mouth',st.mouth);c.fillStyle=st.inside;c.fill(P.inside);c.fillStyle=st.tongue;c.fill(P.tongue);c.fillStyle='#ffffff';c.fill(P.teeth);c.restore();}
+function drawMouthType(c,type,o){const P=MPATH[type];
+  outline(c,P.inside,'mouth',o);if(P.tongue)outline(c,P.tongue,'mouth',o);
+  c.fillStyle=st.inside;c.fill(P.inside);if(P.tongue){c.fillStyle=st.tongue;c.fill(P.tongue);}c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
+function drawMouth(c,k){c.save();xf(c,st.mouth,k);drawMouthType(c,st.mouthType,st.mouth);c.restore();}
 function bbox(key){const o=st[key];if(key==='tex'){const m=mats[st.mat];return m.img?{w:m.img.width,h:m.img.height}:null;}
-  if(key==='body'&&st.shape!=='artist')return{w:620,h:620};return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
+  if(key==='body'&&st.shape!=='artist')return{w:620,h:620};if(key==='mouth'){const m=PARTS.mouths[st.mouthType];return{w:m.w+30,h:m.h+30};}return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
 function render(c,k,showSel){c.setTransform(k,0,0,k,0,0);c.clearRect(0,0,1000,1000);
   if(st.bg!=='clear'){c.fillStyle=st.bg;c.fillRect(0,0,1000,1000);}
   drawLimb(c,'legL',st.legColor,k);drawLimb(c,'legR',st.legColor,k);
@@ -275,7 +280,7 @@ $$('[data-sel]').forEach(b=>b.onclick=()=>select(b.dataset.sel));
 const hc=document.createElement('canvas').getContext('2d');
 function hit(pt){
   const test=(key,path)=>{const o=st[key];hc.setTransform(new DOMMatrix().translate(o.x,o.y).rotate(o.rot*180/Math.PI).scale(o.scale));return hc.isPointInPath(path,pt.x,pt.y);};
-  if(test('mouth',PATH.mouth.line))return'mouth';
+  if(test('mouth',MPATH[st.mouthType].line))return'mouth';
   if(test('handR',PATH.handR.line))return'handR';
   if(test('handL',PATH.handL.line))return'handL';
   const bp=st.shape==='artist'?PATH.body.line:shapePath(st.shape);if(bp&&test('body',bp))return'body';
@@ -312,6 +317,13 @@ function renderShapes(){const gr=$('#shapeGrid');gr.innerHTML='';
     if(custom.includes(s)){const x=document.createElement('span');x.className='x';x.textContent='×';x.setAttribute('role','button');x.setAttribute('aria-label',s.name+' 삭제');x.onclick=ev=>{ev.stopPropagation();removeCustom(s);};b.appendChild(x);}
     gr.appendChild(b);});
   const add=document.createElement('button');add.className='tile add';add.textContent='+';add.setAttribute('aria-label','내 틀 그리기 열기');add.onclick=()=>{$('#drawBox').open=true;$('#pad').scrollIntoView({behavior:'smooth',block:'center'});};gr.appendChild(add);}
+
+/* ---------- 입 모양 그리드 ---------- */
+function renderMouths(){const gr=$('#mouthGrid');gr.innerHTML='';
+  for(const k in PARTS.mouths){const m=PARTS.mouths[k];const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',k===st.mouthType);b.title=m.name;
+    b.appendChild(mk(120,120,g=>{g.translate(60,58);const s=96/Math.max(PARTS.mouths.merong.w,m.w,m.h);const o={scale:s};g.scale(s,s);drawMouthType(g,k,o);}));
+    const nm=document.createElement('span');nm.className='nm';nm.textContent=m.name;b.appendChild(nm);
+    b.onclick=()=>{st.mouthType=k;select('mouth');renderMouths();};gr.appendChild(b);}}
 
 /* ---------- 재료 그리드 ---------- */
 function coverTex(){const m=mats[st.mat];if(m.img){st.tex.scale=Math.max(1000/m.img.width,1000/m.img.height)*(st.tile?.35:.9);st.tex.x=st.body.x;st.tex.y=st.body.y;st.tex.rot=0;}}
@@ -398,11 +410,11 @@ $('#mClose').onclick=()=>$('#modal').hidden=true;
 $('#rand').onclick=()=>{const pick=a=>a[Math.floor(Math.random()*a.length)];const keep=st.bg;st=defaults();st.bg=keep;
   st.shape=pick([...BASIC,...custom]).id;st.mat=Math.floor(Math.random()*mats.length);coverTex();
   st.handColor=pick(TONES)[1];st.legColor=st.handColor;st.tongue=pick(['#F35C8A','#F7A8BB','#8E4FD6','#4FBBE6']);st.inside=pick(['#3A3542','#3A3542','#7A1F31','#1F2A5C']);
-  setScale('handL',K*(0.85+Math.random()*.35));setScale('legL',K*(0.85+Math.random()*.3));renderShapes();renderMats();drawSwatches();draw();};
-$('#reset').onclick=()=>{const keep=st.bg;st=defaults();st.bg=keep;renderShapes();renderMats();drawSwatches();draw();};
+  st.mouthType=pick(Object.keys(PARTS.mouths));renderMouths();setScale('handL',K*(0.85+Math.random()*.35));setScale('legL',K*(0.85+Math.random()*.3));renderShapes();renderMats();drawSwatches();draw();};
+$('#reset').onclick=()=>{const keep=st.bg;st=defaults();st.bg=keep;renderMouths();renderShapes();renderMats();drawSwatches();draw();};
 
 let tt=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2400);}
 
 /* ---------- 시작 ---------- */
-useLocal();renderShapes();renderMats();drawSwatches();padPaint();renderBoard();draw();
+useLocal();renderMouths();renderShapes();renderMats();drawSwatches();padPaint();renderBoard();draw();
 </script>

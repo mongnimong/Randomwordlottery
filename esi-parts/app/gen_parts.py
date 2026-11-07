@@ -72,6 +72,23 @@ for key, (g, (tx, ty, s)) in T.items():
     data[key] = {'lw': LW.get(key, round(15 * s, 2)), 'x': round(cx, 1), 'y': round(cy, 1), 'w': round(x1 - x0, 1), 'h': round(y1 - y0, 1),
                  'p': {k: tf(d, -cx, -cy, 1) for k, d in moved.items()}}
 
+# 입 모양들: 메롱과 같은 배율로, 입안 중심을 메롱 입안 중심에 맞춘다
+mg, (mtx, mty, ms) = T['mouth']
+mi = bounds([tf(mg['inside'], mtx, mty, ms)])
+mcx, mcy = (mi[0] + mi[2]) / 2, (mi[1] + mi[3]) / 2
+px, py = data['mouth']['x'], data['mouth']['y']
+MOUTHS = [('merong', '메롱', 'mouth_merong.svg'), ('teeth', '이빨줄', 'mouth_teeth.svg'), ('wang', '와앙', 'mouth_wang.svg'),
+          ('fang', '크앙', 'mouth_fang.svg'), ('o', '오', 'mouth_o.svg'), ('hehe', '헤헤', 'mouth_hehe.svg')]
+data['mouths'] = {}
+for key, name, fn in MOUTHS:
+    g = groups(fn)['mouth']
+    b = bounds([g['inside']])
+    tx, ty = mcx - (b[0] + b[2]) / 2 * ms, mcy - (b[1] + b[3]) / 2 * ms
+    mv = {k: tf(d, tx - px, ty - py, ms) if False else tf(tf(d, tx, ty, ms), -px, -py, 1) for k, d in g.items()}
+    mv.setdefault('tongue', '')
+    x0, y0, x1, y1 = bounds([mv['line'], mv['inside']] + ([mv['tongue']] if mv['tongue'] else []))
+    data['mouths'][key] = {'name': name, 'w': round(max(abs(x0), abs(x1)) * 2, 1), 'h': round(max(abs(y0), abs(y1)) * 2, 1), 'p': mv}
+
 html = open(tpl).read().replace('/*PARTS_DATA*/null', json.dumps(data, ensure_ascii=False, separators=(',', ':')))
 open(out, 'w').write(html)
-print('ok', {k: (v['x'], v['y'], v['w'], v['h']) for k, v in data.items()})
+print('ok', sorted(data))
