@@ -18,11 +18,7 @@
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
 .app{max-width:1100px;margin:0 auto;display:grid;gap:20px;grid-template-columns:minmax(0,1fr) 390px;align-items:start}
-@media (max-width:880px){.app{grid-template-columns:minmax(0,1fr)}
-  .stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px 10px;gap:8px;box-shadow:0 10px 12px -12px rgba(0,0,0,.25)}
-  .board{max-width:min(100%,44vh)}
-  .ctrl{padding:8px 12px;gap:6px}.ctrl .hint{display:none}
-  header p{display:none}}
+@media (max-width:880px){.app{grid-template-columns:minmax(0,1fr)}}
 header{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 h1{font-family:var(--f-display);font-weight:400;font-size:32px;margin:0}
 header p{margin:0;color:var(--muted)}
@@ -73,6 +69,17 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
 .modal img{width:100%;border-radius:10px;background:#fff}
 .cmp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* 휴대폰: 캔버스+슬라이더를 위에 고정하되 화면의 절반 정도만 쓰게 (기본 규칙 뒤에 둬야 적용됨) */
+@media (max-width:880px){
+  .stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px 8px;gap:6px;box-shadow:0 10px 12px -12px rgba(0,0,0,.25)}
+  .board{max-width:clamp(150px,calc(52vh - 140px),100%);border-radius:14px}
+  .ctrl{padding:6px 10px;gap:4px;border-radius:12px}
+  .ctrl .hint,.ctrl .label{display:none}
+  .seg button{padding:4px 10px;font-size:13px}
+  .slide{grid-template-columns:34px minmax(0,1fr) 40px;font-size:13px}
+  .check{font-size:13px}
+  header p{display:none}
+}
 </style>
 
 <div class="app">
