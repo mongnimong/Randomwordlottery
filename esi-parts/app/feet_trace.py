@@ -42,6 +42,14 @@ def trace(m, ox=0, turd=30):
     return ' '.join(d)
 
 
+def seg_path(segs, flip, ww, ox):
+    out = []
+    for a_, b_ in segs:
+        fx = (lambda x: ww - 1 - x) if flip else (lambda x: x)
+        out.append(f'M{fx(a_[0]) + ox:.1f} {a_[1]:.1f} L{fx(b_[0]) + ox:.1f} {b_[1]:.1f}')
+    return ' '.join(out)
+
+
 # 왼발 기준 영역 (스케치 속 위치)
 TYPES = [('bend', '휘어진 다리', (190, 280, 480, 650)),
          ('heart', '하트 발바닥', (1010, 485, 1345, 705)),
@@ -64,6 +72,7 @@ for key, name, (x0, y0, x1, y1) in TYPES:
     dd = ImageDraw.Draw(dimg)
     seen = np.zeros_like(detail0)
     LW = max(6, int(0.055 * ww0))
+    segs = []
     for y, x in zip(*np.nonzero(detail0)):
         if seen[y, x]:
             continue
@@ -84,6 +93,7 @@ for key, name, (x0, y0, x1, y1) in TYPES:
         L = max(t.max() - t.min(), LW * 2.2) / 2
         a_, b_ = m - u * L, m + u * L
         dd.line([tuple(a_), tuple(b_)], fill=255, width=LW)
+        segs.append((a_, b_))
         for q in (a_, b_):
             dd.ellipse([q[0] - LW / 2, q[1] - LW / 2, q[0] + LW / 2, q[1] + LW / 2], fill=255)
     detail = (np.asarray(dimg) > 127) & core
@@ -99,7 +109,7 @@ for key, name, (x0, y0, x1, y1) in TYPES:
         groups += (f'  <g id="{gid}">\n'
                    f'    <path id="{gid}-line" fill="{INK}" fill-rule="evenodd" d="{fd}" stroke="{INK}" stroke-width="{2 * T:.1f}" stroke-linejoin="round"/>\n'
                    f'    <path id="{gid}-fill" fill="{SKIN}" fill-rule="evenodd" d="{fd}"/>\n'
-                   + (f'    <path id="{gid}-detail" fill="{INK}" fill-rule="evenodd" d="{trace(d_, ox, 2)}"/>\n' if d_.any() else '')
+                   + (f'    <path id="{gid}-detail" fill="none" fill-rule="evenodd" d="{seg_path(segs, flip, ww, ox)}" stroke="{INK}" stroke-width="{T * 0.85:.1f}" stroke-linecap="round"/>\n' if segs else '')
                    + '  </g>\n')
     tw = ww * 2 + gap
     open(f'{outdir}/feet3_{key}.svg', 'w').write(

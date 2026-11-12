@@ -28,7 +28,7 @@ def tf(d, tx, ty, s):
 
 
 body = groups('body_wide.svg')['body']
-hands = groups('hand_skin_v2.svg')
+hands = groups('hand_skin_v3.svg')
 ref = groups('hand_skin.svg')['hand-left']
 legs = groups('legs_skin.svg')
 mouth = groups('mouth_merong.svg')['mouth']
@@ -89,7 +89,7 @@ for key, name, fn in MOUTHS:
     lb = bounds([g['line']])
     sk = WANT / (lb[2] - lb[0])
     if key == 'tongue_big':
-        data['mouth']['lw'] = round(22 * sk * 1.3, 2)   # 입 테두리 굵기(모든 입 공통, 조금 두껍게)
+        data['mouth']['lw'] = round(22 * sk * 1.6, 2)   # 입 테두리 굵기(모든 입 공통, 조금 더 두껍게)
     b = bounds([g['inside']])
     tx, ty = mcx - (b[0] + b[2]) / 2 * sk, mcy - (b[1] + b[3]) / 2 * sk
     mv = {k: tf(tf(d, tx, ty, sk), -px, -py, 1) for k, d in g.items()}

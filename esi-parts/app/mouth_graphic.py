@@ -103,6 +103,7 @@ for (y0, y1) in split(rows):
         tg0 = fill_holes(smooth(pink[sl] & reg0, 6) | (pink[sl] & reg0))
         tongue = np.zeros_like(reg)
         groove = np.zeros_like(reg)
+        gline = ''
         if tg0.sum() > 500:
             txs = np.where(tg0.any(axis=0))[0]
             tcx = cx if sym else (txs[0] + txs[-1]) / 2
@@ -117,6 +118,7 @@ for (y0, y1) in split(rows):
                 d.line([(tcx, gy0), (tcx, gy1)], fill=255, width=int(gw))
                 d.ellipse([tcx - gw / 2, gy1 - gw / 2, tcx + gw / 2, gy1 + gw / 2], fill=255)
                 groove = (np.asarray(gimg) > 127) & tongue
+                gline = f'M{tcx:.1f} {gy0 + gw * 0.6:.1f} L{tcx:.1f} {gy1:.1f}'
 
         # 이빨: 덩어리마다 위/아래, 둥근/뾰족을 읽고 줄마다 같은 크기로 다시 그림
         teeth_src = white[sl] & reg0
@@ -197,9 +199,11 @@ for (y0, y1) in split(rows):
             return ' '.join(dd)
 
         layers = [('mouth-line', INK, trace(reg)), ('mouth-inside', INK, trace(inside)),
-                  ('mouth-tongue', '#E0668A', trace(tongue)), ('mouth-groove', INK, trace(groove)),
+                  ('mouth-tongue', '#E0668A', trace(tongue)),
                   ('mouth-teeth', '#FFFFFF', trace(teeth))]
         body = ''.join(f'    <path id="{i}" fill="{c}" fill-rule="evenodd" d="{dd}"/>\n' for i, c, dd in layers if dd)
+        if gline:   # 혀 가운데 홈: 선(중심선)으로 저장
+            body += f'    <path id="mouth-groove" fill="none" fill-rule="evenodd" d="{gline}" stroke="{INK}" stroke-width="{RING * 0.45:.1f}" stroke-linecap="round"/>\n'
         open(f'{outdir}/mouth3_{key}.svg', 'w').write(
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {ww} {hh}" width="{ww}" height="{hh}">\n'
             f'  <!-- {name} (그래픽) -->\n  <g id="mouth">\n{body}  </g>\n</svg>\n')

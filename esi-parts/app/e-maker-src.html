@@ -283,15 +283,16 @@ function drawMat(c,k){const m=mats[st.mat];c.save();c.setTransform(k,0,0,k,0,0);
   c.restore();}
 // 외곽선은 면 둘레에 '화면 기준' 같은 굵기로 다시 그린다 → 크기를 바꿔도 선 굵기가 그대로
 const LWPX=key=>PARTS[key].lw*K;
+function detailLine(c,path,key,o){c.lineCap='round';c.lineJoin='round';c.strokeStyle=INK;c.lineWidth=LWPX(key)*0.85/o.scale;c.stroke(path);}
 function outline(c,path,key,o){c.lineJoin='round';c.lineCap='round';c.strokeStyle=INK;c.lineWidth=2*LWPX(key)/o.scale;c.stroke(path);}
-function drawLimb(c,key,color,k){c.save();const o=st[key];xf(c,o,k);const P=pathOf(key);outline(c,P.fill,key,o);c.fillStyle=color;c.fill(P.fill,'evenodd');if(P.detail){c.fillStyle=INK;c.fill(P.detail,'evenodd');}c.restore();}
+function drawLimb(c,key,color,k){c.save();const o=st[key];xf(c,o,k);const P=pathOf(key);outline(c,P.fill,key,o);c.fillStyle=color;c.fill(P.fill,'evenodd');if(P.detail)detailLine(c,P.detail,key,o);c.restore();}
 function drawBody(c,k){c.save();xf(c,st.body,k);
   const p=st.shape==='artist'?PATH.body.fill:shapePath(st.shape);
   if(p){outline(c,p,'body',st.body);c.clip(p,st.shape==='artist'?'evenodd':'nonzero');drawMat(c,k);}
   c.restore();}
 function drawMouthType(c,type,o){const P=MPATH[type];
   outline(c,P.inside,'mouth',o);if(P.tongue)outline(c,P.tongue,'mouth',o);
-  c.fillStyle=st.inside;c.fill(P.inside);if(P.tongue){c.fillStyle=st.tongue;c.fill(P.tongue);}if(P.groove){c.fillStyle=INK;c.fill(P.groove,'evenodd');}c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
+  c.fillStyle=st.inside;c.fill(P.inside);if(P.tongue){c.fillStyle=st.tongue;c.fill(P.tongue);}if(P.groove){c.lineCap='round';c.strokeStyle=INK;c.lineWidth=LWPX('mouth')*0.8/o.scale;c.stroke(P.groove);}c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
 function drawMouth(c,k){c.save();xf(c,st.mouth,k);drawMouthType(c,st.mouthType,st.mouth);c.restore();}
 function bbox(key){const o=st[key];if(key==='tex'){const m=mats[st.mat];return m.img?{w:m.img.width,h:m.img.height}:null;}
   if(key==='body'&&st.shape!=='artist')return{w:620,h:620};if(key==='mouth'){const m=PARTS.mouths[st.mouthType];return{w:m.w+30,h:m.h+30};}if(key.startsWith('leg')){const d=footDef(key);return{w:d.w+30,h:d.h+30};}return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
@@ -404,7 +405,7 @@ function renderFeet(){const gr=$('#footGrid');if(!gr)return;gr.innerHTML='';
   for(const k in PARTS.feet){const f=PARTS.feet[k];const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',k===st.footType);b.title=f.name;
     b.appendChild(mk(120,120,g=>{const L=f.L,R=f.R,x0=Math.min(L.x-L.w/2,R.x-R.w/2),x1=Math.max(L.x+L.w/2,R.x+R.w/2),y0=Math.min(L.y-L.h/2,R.y-R.h/2),y1=Math.max(L.y+L.h/2,R.y+R.h/2);
       const s=96/Math.max(x1-x0,y1-y0);g.translate(60,56);g.scale(s,s);g.translate(-(x0+x1)/2,-(y0+y1)/2);
-      for(const sd of ['L','R']){const P=FPATH[k][sd],d=f[sd];g.save();g.translate(d.x,d.y);g.lineJoin='round';g.strokeStyle=INK;g.lineWidth=2*PARTS.legL.lw;g.stroke(P.fill);g.fillStyle=st.legColor;g.fill(P.fill,'evenodd');if(P.detail){g.fillStyle=INK;g.fill(P.detail,'evenodd');}g.restore();}}));
+      for(const sd of ['L','R']){const P=FPATH[k][sd],d=f[sd];g.save();g.translate(d.x,d.y);g.lineJoin='round';g.strokeStyle=INK;g.lineWidth=2*PARTS.legL.lw;g.stroke(P.fill);g.fillStyle=st.legColor;g.fill(P.fill,'evenodd');if(P.detail){g.lineCap='round';g.strokeStyle=INK;g.lineWidth=PARTS.legL.lw*0.85;g.stroke(P.detail);}g.restore();}}));
     const nm=document.createElement('span');nm.className='nm';nm.textContent=f.name;b.appendChild(nm);
     b.onclick=()=>{setFoot(k);select('legL');};gr.appendChild(b);}}
 
