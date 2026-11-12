@@ -9,7 +9,7 @@ PAIR = re.compile(r'(-?\d*\.?\d+) (-?\d*\.?\d+)')
 
 def groups(fname):
     s = open(f'{D}/{fname}').read()
-    return {gid: dict(re.findall(r'<path id="[^"]*?-?(line|fill|inside|tongue|teeth|groove)" fill="[^"]+" fill-rule="evenodd" d="([^"]+)"', body))
+    return {gid: dict(re.findall(r'<path id="[^"]*?-?(line|fill|inside|tongue|teeth|groove|detail)" fill="[^"]+" fill-rule="evenodd" d="([^"]+)"', body))
             for gid, body in re.findall(r'<g id="([^"]+)">\n(.*?)  </g>', s, re.S)}
 
 
@@ -89,13 +89,31 @@ for key, name, fn in MOUTHS:
     lb = bounds([g['line']])
     sk = WANT / (lb[2] - lb[0])
     if key == 'tongue_big':
-        data['mouth']['lw'] = round(22 * sk, 2)   # 입 테두리 굵기(모든 입 공통)
+        data['mouth']['lw'] = round(22 * sk * 1.3, 2)   # 입 테두리 굵기(모든 입 공통, 조금 두껍게)
     b = bounds([g['inside']])
     tx, ty = mcx - (b[0] + b[2]) / 2 * sk, mcy - (b[1] + b[3]) / 2 * sk
     mv = {k: tf(tf(d, tx, ty, sk), -px, -py, 1) for k, d in g.items()}
     mv.setdefault('tongue', '')
     x0, y0, x1, y1 = bounds([mv['line'], mv['inside']] + ([mv['tongue']] if mv['tongue'] else []))
     data['mouths'][key] = {'name': name, 'w': round(max(abs(x0), abs(x1)) * 2, 1), 'h': round(max(abs(y0), abs(y1)) * 2, 1), 'p': mv}
+
+# 발 3종(손그림 정리본). 종류마다 기본 크기·자리, 몸 앞에 보이는지(front)를 정해 둔다.
+FEET = [('bend', '휘어진 다리', 'feet3_bend.svg', 0.20, 90, 0.22, False),
+        ('heart', '하트 발바닥', 'feet3_heart.svg', 0.24, 55, 0.27, True),
+        ('paw', '발가락 발', 'feet3_paw.svg', 0.18, 90, 0.22, False)]
+data['feet'] = {}
+for key, name, fn, fw, ftop, fdx, front in FEET:
+    gs = groups(fn)
+    ent = {'name': name, 'front': front}
+    for side, gid, sign in (('L', 'leg-left', -1), ('R', 'leg-right', 1)):
+        g = gs[gid]
+        tx, ty, s_ = place(g, CX + sign * BW * fdx, TOP + BH - ftop, BW * fw, 'top')
+        moved = {k: tf(d, tx, ty, s_) for k, d in g.items()}
+        x0, y0, x1, y1 = bounds([moved['line']])
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        ent[side] = {'x': round(cx, 1), 'y': round(cy, 1), 'w': round(x1 - x0, 1), 'h': round(y1 - y0, 1),
+                     'p': {k: tf(d, -cx, -cy, 1) for k, d in moved.items()}}
+    data['feet'][key] = ent
 
 html = open(tpl).read().replace('/*PARTS_DATA*/null', json.dumps(data, ensure_ascii=False, separators=(',', ':')))
 open(out, 'w').write(html)
