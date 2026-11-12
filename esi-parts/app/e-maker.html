@@ -1,4 +1,3 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
 <title>E씨 공방</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
@@ -270,7 +269,7 @@ function defaults(){const P=k=>({x:MX(PARTS[k].x),y:MY(PARTS[k].y),scale:K,rot:0
   return {body:P('body'),handL:P('handL'),handR:P('handR'),legL:F('legL'),legR:F('legR'),mouth:P('mouth'),
     footType:'bend',order:['leg','body','hand','mouth'],locked:{},
     tex:{x:500,y:500,scale:1,rot:0},mat:0,tile:false,shape:'artist',
-    mouthType:'tongue_big',handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#E0457B',bg:'clear',
+    mouthType:'tongue_big',handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#E23B6E',bg:'clear',
     link:{hand:true,leg:true},sel:'handL'};}
 let st=defaults();
 
@@ -456,8 +455,8 @@ function swatchRow(el,list,get,set){const box=$(el);box.innerHTML='';
   const p=document.createElement('label');p.className='sw pick';p.title='직접 고르기';const inp=document.createElement('input');inp.type='color';inp.value=get();inp.setAttribute('aria-label','색 직접 고르기');
   inp.oninput=()=>{set(inp.value.toUpperCase());draw();};inp.onchange=()=>swatchRow(el,list,get,set);p.appendChild(inp);box.appendChild(p);}
 // 입 기본 색
-const INSIDE_COLORS=[['먹색(외곽선색)','#3A3542'],['빨강','#D7263D'],['진한 네온핑크','#FF1F8E'],['진한 네온오렌지','#FF6A00'],['남색','#1F2A5C'],['진한 보라','#4B1D7A']];
-const TONGUE_COLORS=[['진한 핑크','#E0457B'],['진한 네온핑크','#FF2D95'],['빨강','#E0283A'],['연한 핑크','#F7B6C8'],['보라 섞인 핑크','#C2569E'],['파스텔 핑크','#FAD0DC']];
+const INSIDE_COLORS=[['먹색(외곽선색)','#3A3542'],['진한 네온오렌지','#FF6A00'],['남색','#1F2A5C'],['진한 네온핑크','#FF1F8E'],['다크 초콜릿','#4A2A22'],['코발트 블루','#1F4FD1'],['진한 보라','#4B1D7A'],['머스터드','#E0A100'],['딥 틸','#0E5E5E'],['빨강','#D7263D']];
+const TONGUE_COLORS=[['체리 핑크','#E23B6E'],['버블검 핑크','#FF85B3'],['빨강','#E0283A'],['보라 섞인 핑크','#C2569E'],['코랄 핑크','#FF6F61'],['라즈베리','#B0134A'],['수박 핑크','#FF5C77'],['진한 네온핑크','#FF2D95']];
 const TONES=[['살구','#F3CBB3'],['크림','#ECE6D2'],['먹색','#3A3542'],['연분홍','#F7B5C4'],['하늘','#9ED3EE']];
 function drawSwatches(){
   swatchRow('#handSw',TONES,()=>st.handColor,c=>st.handColor=c);
@@ -532,5 +531,3 @@ let tt=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;cl
 /* ---------- 시작 ---------- */
 useLocal();renderMouths();renderFeet();renderShapes();renderMats();drawSwatches();padPaint();renderBoard();draw();
 </script>
-
-</body></html>
