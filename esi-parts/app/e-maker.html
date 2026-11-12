@@ -292,8 +292,13 @@ function drawBody(c,k){c.save();xf(c,st.body,k);
   if(p){outline(c,p,'body',st.body);c.clip(p,st.shape==='artist'?'evenodd':'nonzero');drawMat(c,k);}
   c.restore();}
 function drawMouthType(c,type,o){const P=MPATH[type];
+  // 1) 입 바깥 테두리(혀가 입 밖으로 나온 부분 포함) → 2) 입안 색
   outline(c,P.inside,'mouth',o);if(P.tongue)outline(c,P.tongue,'mouth',o);
-  c.fillStyle=st.inside;c.fill(P.inside);if(P.tongue){c.fillStyle=st.tongue;c.fill(P.tongue);}if(P.groove){c.lineCap='round';c.strokeStyle=INK;c.lineWidth=LWPX('mouth')*0.8/o.scale;c.stroke(P.groove);}c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
+  c.fillStyle=st.inside;c.fill(P.inside);
+  // 3) 혀 테두리를 입안 위에 한 번 더 → 혀와 입안이 만나는 곳에도 선이 보임
+  if(P.tongue){outline(c,P.tongue,'mouth',o);c.fillStyle=st.tongue;c.fill(P.tongue);}if(P.groove){c.lineCap='round';c.strokeStyle=INK;c.lineWidth=LWPX('mouth')*0.8/o.scale;c.stroke(P.groove);}// 4) 이빨: 얇은 테두리(입 테두리의 절반) 후 흰색
+  c.lineJoin='round';c.strokeStyle=INK;c.lineWidth=LWPX('mouth')*1.0/o.scale;c.stroke(P.teeth);
+  c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
 function drawMouth(c,k){c.save();xf(c,st.mouth,k);drawMouthType(c,st.mouthType,st.mouth);c.restore();}
 function bbox(key){const o=st[key];if(key==='tex'){const m=mats[st.mat];return m.img?{w:m.img.width,h:m.img.height}:null;}
   if(key==='body'&&st.shape!=='artist')return{w:620,h:620};if(key==='mouth'){const m=PARTS.mouths[st.mouthType];return{w:m.w+30,h:m.h+30};}if(key.startsWith('leg')){const d=footDef(key);return{w:d.w+30,h:d.h+30};}return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
