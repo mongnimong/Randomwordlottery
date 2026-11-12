@@ -43,6 +43,27 @@ def trace(mask):
     return ' '.join(d)
 
 
+def reach_edge(seg, mask, maxd):
+    """선분 양 끝 중 외곽에 가까운 쪽을 면이 끝나는 지점(외곽선이 시작되는 곳)까지 늘린다."""
+    import numpy as _np
+    a_, b_ = _np.array(seg[0], float), _np.array(seg[1], float)
+    hh_, ww_ = mask.shape
+    out = [a_, b_]
+    for i, (p_, q_) in enumerate(((a_, b_), (b_, a_))):
+        v = p_ - q_
+        n = _np.hypot(*v)
+        if n == 0:
+            continue
+        v /= n
+        for step in range(0, int(maxd)):
+            x, y = p_ + v * step
+            xi, yi = int(round(x)), int(round(y))
+            if not (0 <= xi < ww_ and 0 <= yi < hh_) or not mask[yi, xi]:
+                out[i] = p_ + v * step
+                break
+    return out[0], out[1]
+
+
 def segments(mask):
     """홈 덩어리마다 주축 방향 선분 하나."""
     seen = np.zeros_like(mask)
@@ -67,7 +88,7 @@ def segments(mask):
         a_, b_ = m + u * t.min(), m + u * t.max()
         if a_[1] > b_[1]:
             a_, b_ = b_, a_
-        segs.append((a_, b_))
+        segs.append(reach_edge((a_, b_), closed, 120))
     return segs
 
 

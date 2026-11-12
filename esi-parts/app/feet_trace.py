@@ -42,6 +42,27 @@ def trace(m, ox=0, turd=30):
     return ' '.join(d)
 
 
+def reach_edge(seg, mask, maxd):
+    """선분 양 끝 중 외곽에 가까운 쪽을 면이 끝나는 지점(외곽선이 시작되는 곳)까지 늘린다."""
+    import numpy as _np
+    a_, b_ = _np.array(seg[0], float), _np.array(seg[1], float)
+    hh_, ww_ = mask.shape
+    out = [a_, b_]
+    for i, (p_, q_) in enumerate(((a_, b_), (b_, a_))):
+        v = p_ - q_
+        n = _np.hypot(*v)
+        if n == 0:
+            continue
+        v /= n
+        for step in range(0, int(maxd)):
+            x, y = p_ + v * step
+            xi, yi = int(round(x)), int(round(y))
+            if not (0 <= xi < ww_ and 0 <= yi < hh_) or not mask[yi, xi]:
+                out[i] = p_ + v * step
+                break
+    return out[0], out[1]
+
+
 def seg_path(segs, flip, ww, ox):
     out = []
     for a_, b_ in segs:
@@ -93,7 +114,7 @@ for key, name, (x0, y0, x1, y1) in TYPES:
         L = max(t.max() - t.min(), LW * 2.2) / 2
         a_, b_ = m - u * L, m + u * L
         dd.line([tuple(a_), tuple(b_)], fill=255, width=LW)
-        segs.append((a_, b_))
+        segs.append(reach_edge((a_, b_), core, LW * 4))
         for q in (a_, b_):
             dd.ellipse([q[0] - LW / 2, q[1] - LW / 2, q[0] + LW / 2, q[1] + LW / 2], fill=255)
     detail = (np.asarray(dimg) > 127) & core
