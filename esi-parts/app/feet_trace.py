@@ -1,7 +1,6 @@
 import sys
 import numpy as np
 import potrace
-from notch import carve, toe_bumps
 from PIL import Image, ImageDraw, ImageFilter
 
 # 발 스케치 3종 → 좌우대칭·굵기 일정한 발 SVG
@@ -123,10 +122,6 @@ for key, name, (x0, y0, x1, y1) in TYPES:
     hh, ww = core.shape
     gap = int(ww * 0.25)
     T = 0.073 * ww                                 # 지금 손·발과 같은 비율의 외곽선 굵기
-    if key == 'paw':
-        # 발가락 끝을 동그랗고 뭉툭하게: 발가락 선이 닿는 외곽에 홈을 파서 발가락 사이가 쏙 들어가게
-        core = toe_bumps(core, segs, T)
-        core = carve(core, segs, T * 1.4, T * 0.8, out=T * 0.8)
     groups = ''
     for gid, flip, ox in (('leg-left', False, 0), ('leg-right', True, ww + gap)):
         c_ = np.fliplr(core) if flip else core
