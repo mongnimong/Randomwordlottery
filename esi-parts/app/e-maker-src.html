@@ -144,7 +144,7 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
           <div class="pad-wrap"><canvas id="pad" width="400" height="400" aria-label="틀 그리기 패드"></canvas></div>
           <div class="row"><label class="check"><input type="checkbox" id="sym" checked> 좌우대칭</label><button class="btn small" id="padClear">다시 그리기</button></div>
           <div class="row"><input type="text" id="shapeName" placeholder="틀 이름" maxlength="12"><button class="btn primary small" id="padSave">내 틀로 저장</button></div>
-          <p class="hint">좌우대칭이 켜져 있으면 가운데 점선 오른쪽에 위에서 아래로 반쪽만 그리세요. 가장자리는 자동으로 뽀글 선이 돼요.</p>
+          <p class="hint">좌우대칭이 켜져 있으면 반쪽만 그려도, 모양 전체를 그려도 좌우가 똑같이 맞춰져요. 그린 크기 그대로 몸통 크기가 돼요. 가장자리는 자동으로 뽀글 선이 돼요.</p>
         </div>
       </details>
     </div>
@@ -300,7 +300,7 @@ function drawMouthType(c,type,o){const P=MPATH[type];
   c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
 function drawMouth(c,k){c.save();xf(c,st.mouth,k);drawMouthType(c,st.mouthType,st.mouth);c.restore();}
 function bbox(key){const o=st[key];if(key==='tex'){const m=mats[st.mat];return m.img?{w:m.img.width,h:m.img.height}:null;}
-  if(key==='body'&&st.shape!=='artist')return{w:620,h:620};if(key==='mouth'){const m=PARTS.mouths[st.mouthType];return{w:m.w+30,h:m.h+30};}if(key.startsWith('leg')){const d=footDef(key);return{w:d.w+30,h:d.h+30};}return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
+  if(key==='body'&&st.shape!=='artist'){const c=custom.find(x=>x.id===st.shape);return c&&c.w?{w:c.w,h:c.h}:{w:620,h:620};}if(key==='mouth'){const m=PARTS.mouths[st.mouthType];return{w:m.w+30,h:m.h+30};}if(key.startsWith('leg')){const d=footDef(key);return{w:d.w+30,h:d.h+30};}return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
 function render(c,k,showSel){c.setTransform(k,0,0,k,0,0);c.clearRect(0,0,1000,1000);
   if(st.bg!=='clear'){c.fillStyle=st.bg;c.fillRect(0,0,1000,1000);}
   for(const g of st.order){
@@ -384,7 +384,7 @@ $$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.set
 /* ---------- 몸통 틀 그리드 ---------- */
 function shapeThumb(id){return mk(120,120,g=>{g.translate(60,60);
   if(id==='artist'){const b=PARTS.body;const s=100/b.w;g.scale(s,s);g.fillStyle=INK;g.fill(PATH.body.line);g.fillStyle='#43B5E9';g.fill(PATH.body.fill,'evenodd');}
-  else{const p=shapePath(id);if(!p)return;g.scale(.16,.16);g.lineJoin='round';g.lineWidth=40;g.strokeStyle=INK;g.stroke(p);g.fillStyle='#43B5E9';g.fill(p);}});}
+  else{const p=shapePath(id);if(!p)return;const c=custom.find(x=>x.id===id),z=c&&c.w?Math.min(.16,100/Math.max(c.w,c.h)):.16;g.scale(z,z);g.lineJoin='round';g.lineWidth=40;g.strokeStyle=INK;g.stroke(p);g.fillStyle='#43B5E9';g.fill(p);}});}
 function renderShapes(){const gr=$('#shapeGrid');gr.innerHTML='';
   [...BASIC,...custom].forEach(s=>{const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',s.id===st.shape);b.title=s.name;
     b.appendChild(shapeThumb(s.id));const nm=document.createElement('span');nm.className='nm';nm.textContent=s.name;b.appendChild(nm);
@@ -479,21 +479,44 @@ async function removeCustom(s){custom=custom.filter(c=>c.id!==s.id);if(st.shape=
     custom=docs.filter(d=>d.type==='shape');boardItems=docs.filter(d=>d.type==='board');renderShapes();renderBoard();if(st.shape!=='artist'&&!BASIC.some(b=>b.id===st.shape)&&!custom.some(c=>c.id===st.shape)){st.shape='artist';draw();}},()=>{});}catch(e){}})();
 
 /* ---------- 틀 그리기 패드 ---------- */
-const pad=$('#pad'),pc=pad.getContext('2d');let stroke=[],drawing=false,padD=null;
+const pad=$('#pad'),pc=pad.getContext('2d');let stroke=[],drawing=false,padD=null,padC=[200,200],padWH=[620,620];
+// 패드 400칸 = 몸통 700 (원본 와이드 몸통 폭 600보다 조금 크게). 그린 크기 그대로 몸통 크기가 됨
+const PAD_K=1.75;
+// 닫힌 도형을 x>=ax 쪽만 남기고 자름 (점선 넘어간 부분을 눌러 붙이지 않고 잘라냄)
+function clipRight(v,ax){const o=[];for(let i=0;i<v.length;i++){const a=v[i],b=v[(i+1)%v.length],ia=a[0]>=ax,ib=b[0]>=ax;
+  if(ia)o.push(a);if(ia!==ib){const t=(ax-a[0])/(b[0]-a[0]);o.push([ax,a[1]+t*(b[1]-a[1])]);}}return o;}
+// 잘린 닫힌 도형에서 축 위 점들을 빼고 오른쪽 둘레(가장 긴 구간)만 꺼냄 → 위→아래로 정리
+function rightRun(v,ax){const on=q=>Math.abs(q[0]-ax)<0.75,n=v.length;let k=v.findIndex(on);if(k<0)return v;
+  v=v.slice(k).concat(v.slice(0,k));let best=[],cur=[v[0]];
+  for(let i=1;i<=n;i++){const q=v[i%n];cur.push(q);if(on(q)){if(cur.length>best.length)best=cur;cur=[q];}}
+  return best;}
+function mirrorHalf(h,ax){if(h[0][1]>h[h.length-1][1])h=h.slice().reverse();
+  h=h.map((q,i)=>i===0||i===h.length-1?[ax,q[1]]:[Math.max(ax,q[0]),q[1]]);
+  const m=h.slice(1,-1).reverse().map(q=>[2*ax-q[0],q[1]]);return h.concat(m);}
 function padPaint(){pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,400,400);
   if($('#sym').checked){pc.setLineDash([6,6]);pc.strokeStyle='#a29cab';pc.lineWidth=1.5;pc.beginPath();pc.moveTo(200,0);pc.lineTo(200,400);pc.stroke();pc.setLineDash([]);}
-  if(padD){pc.save();pc.translate(200,200);pc.scale(.28,.28);const p=new Path2D(padD);pc.lineJoin='round';pc.lineWidth=40;pc.strokeStyle=INK;pc.stroke(p);pc.fillStyle='#43B5E9';pc.fill(p);pc.restore();}
+  if(padD){pc.save();pc.translate(padC[0],padC[1]);pc.scale(1/PAD_K,1/PAD_K);const p=new Path2D(padD);pc.lineJoin='round';pc.lineWidth=40;pc.strokeStyle=INK;pc.stroke(p);pc.fillStyle='#43B5E9';pc.fill(p);pc.restore();}
   if(stroke.length>1){pc.strokeStyle=INK;pc.lineWidth=4;pc.lineCap='round';pc.lineJoin='round';pc.beginPath();stroke.forEach((p,i)=>i?pc.lineTo(p[0],p[1]):pc.moveTo(p[0],p[1]));pc.stroke();}}
 function ppos(e){const r=pad.getBoundingClientRect();return[(e.clientX-r.left)*400/r.width,(e.clientY-r.top)*400/r.height];}
 pad.addEventListener('pointerdown',e=>{pad.setPointerCapture(e.pointerId);drawing=true;padD=null;stroke=[ppos(e)];padPaint();});
 pad.addEventListener('pointermove',e=>{if(!drawing)return;const p=ppos(e),l=stroke[stroke.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>5){stroke.push(p);padPaint();}});
 pad.addEventListener('pointerup',()=>{drawing=false;let pts=stroke.slice();if(pts.length<6){stroke=[];padPaint();return;}
-  if($('#sym').checked){pts=pts.map(p=>[Math.max(200,p[0]),p[1]]);pts=pts.concat(pts.slice().reverse().map(p=>[400-p[0],p[1]]));}
-  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),y0=Math.min(...ys),w=Math.max(...xs)-x0||1,h=Math.max(...ys)-y0||1,s=540/Math.max(w,h);
-  pts=chaikin(pts.map(p=>[(p[0]-x0-w/2)*s,(p[1]-y0-h/2)*s]),2);padD=S(pts);stroke=[];padPaint();});
+  if($('#sym').checked){
+    const xs0=pts.map(p=>p[0]),ys0=pts.map(p=>p[1]),mn=Math.min(...xs0),mx=Math.max(...xs0),H=Math.max(...ys0)-Math.min(...ys0);
+    // 왼쪽 끝 근처 점들이 세로로 길게 이어지면 '반쪽'(점선 따라 세운 D), 아니면 '모양 전체'
+    const nearY=pts.filter(q=>q[0]-mn<18).map(q=>q[1]),isHalf=mn>=192&&(Math.max(...nearY)-Math.min(...nearY))>0.6*H;
+    let ax,poly;
+    if(mn<192){ax=200;poly=clipRight(pts,ax);}                       // 점선을 넘어 그림 → 점선 오른쪽만
+    else if(isHalf){ax=Math.min(mn,200);poly=pts.map(q=>q[0]-mn<8?[ax,q[1]]:q);} // 반쪽 → 왼쪽 세로선이 축
+    else{ax=(mn+mx)/2;poly=clipRight(pts,ax);}                       // 오른쪽에 모양 전체 → 그 모양 가운데가 축
+    const half=rightRun(poly,ax);if(half.length<3){stroke=[];padPaint();return;}
+    pts=mirrorHalf(half,ax).map(p=>[p[0]-ax+200,p[1]]);}
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),y0=Math.min(...ys),w=Math.max(...xs)-x0||1,h=Math.max(...ys)-y0||1;
+  padC=[x0+w/2,y0+h/2];padWH=[w*PAD_K+60,h*PAD_K+60];
+  pts=chaikin(pts.map(p=>[(p[0]-padC[0])*PAD_K,(p[1]-padC[1])*PAD_K]),2);padD=S(pts);stroke=[];padPaint();});
 $('#sym').onchange=padPaint;$('#padClear').onclick=()=>{stroke=[];padD=null;padPaint();};
 $('#padSave').onclick=()=>{if(!padD){toast('먼저 패드에 틀 모양을 그려 주세요');return;}const name=$('#shapeName').value.trim()||`내 틀 ${custom.length+1}`;
-  addCustom({id:'c'+Date.now().toString(36),name,d:padD,at:Date.now()});padD=null;$('#shapeName').value='';padPaint();toast(`'${name}' 틀을 저장했어요`);};
+  addCustom({id:'c'+Date.now().toString(36),name,d:padD,w:Math.round(padWH[0]),h:Math.round(padWH[1]),at:Date.now()});padD=null;$('#shapeName').value='';padPaint();toast(`'${name}' 틀을 저장했어요`);};
 
 /* ---------- 마무리: 배경, 저장, 비교 보드 ---------- */
 $('#bgSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;$$('#bgSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));st.bg=b.dataset.v;
