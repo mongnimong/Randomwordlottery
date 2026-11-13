@@ -543,7 +543,8 @@ function swatchRow(el,list,get,set){const box=$(el);box.innerHTML='';
 // 입 기본 색
 const INSIDE_COLORS=[['먹색(외곽선색)','#3A3542'],['진한 네온오렌지','#FF6A00'],['남색','#1F2A5C'],['진한 네온핑크','#FF1F8E'],['다크 초콜릿','#4A2A22'],['코발트 블루','#1F4FD1'],['진한 보라','#4B1D7A'],['머스터드','#E0A100'],['딥 틸','#0E5E5E'],['빨강','#D7263D']];
 const TONGUE_COLORS=[['체리 핑크','#E23B6E'],['버블검 핑크','#FF85B3'],['빨강','#E0283A'],['보라 섞인 핑크','#C2569E'],['코랄 핑크','#FF6F61'],['라즈베리','#B0134A'],['수박 핑크','#FF5C77'],['진한 네온핑크','#FF2D95']];
-const TONES=[['살구','#F3CBB3'],['크림','#ECE6D2'],['먹색','#3A3542'],['연분홍','#F7B5C4'],['하늘','#9ED3EE']];
+// 손발 색: 진한 몸통색들 위에서 또렷이 보이도록 몸통 색 가족의 '우유·크림 버전' 파스텔 + 살색 + 초코
+const TONES=[['살구','#F3CBB3'],['라무네','#BFE6FA'],['밀크초코','#9B6B53'],['딸기크림','#FFC7D6'],['멜론바','#C9F0B8'],['타로라떼','#DCCFF5'],['바닐라','#FFF1C4'],['쿠키앤크림','#D4D0D8'],['민트우유','#C4EFE3'],['마시멜로','#FBF8F0']];
 function drawSwatches(){
   swatchRow('#handSw',TONES,()=>st.handColor,c=>st.handColor=c);
   swatchRow('#legSw',[['살구','#F9C2A9'],...TONES.slice(1)],()=>st.legColor,c=>st.legColor=c);
