@@ -145,6 +145,11 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
         <div class="row"><button class="btn small" id="rot90">↻ 90° 돌리기</button><label class="check" id="tileRow"><input type="checkbox" id="tile"> 반복해서 채우기</label></div>
         <div class="slide"><span>방향</span><input type="range" id="patRot" min="-180" max="180" value="0" aria-label="무늬 방향"><span id="patRotV">0°</span></div>
         <div class="slide"><span>크기</span><input type="range" id="patSz" min="20" max="300" value="100" aria-label="무늬 크기"><span id="patSzV">100%</span></div>
+        <div id="patCol">
+          <div class="label" style="margin:2px 0 4px">바탕색</div><div class="row" id="patBg"></div>
+          <div class="label" style="margin:8px 0 4px">무늬색</div><div class="row" id="patFg"></div>
+          <div class="row" style="margin-top:6px"><button class="btn small" id="patReset">원래 색으로</button></div>
+        </div>
       </div>
       <details id="drawBox">
         <summary class="label" style="cursor:pointer">내 틀 직접 그리기</summary>
@@ -256,7 +261,7 @@ function scallopWild(v,step,h,seed){const r=rng(seed),n=v.length,L=[0];for(let i
     d+=' C'+f1(p[0]+sg*dy/l*hh*1.25+dx*.08)+' '+f1(p[1]-sg*dx/l*hh*1.25+dy*.08)+' '+f1(mx-dx*.28+sg*dy/l*hh*1.33)+' '+f1(my-dy*.28-sg*dx/l*hh*1.33)+' '+f1(mx+sg*dy/l*hh*1.33)+' '+f1(my-sg*dx/l*hh*1.33);
     d+=' C'+f1(mx+dx*.28+sg*dy/l*hh*1.33)+' '+f1(my+dy*.28-sg*dx/l*hh*1.33)+' '+f1(q[0]+sg*dy/l*hh*1.25-dx*.08)+' '+f1(q[1]-sg*dx/l*hh*1.25-dy*.08)+' '+f1(q[0])+' '+f1(q[1]);}
   return d+' Z';}
-const S=(pts)=>scallopWild(pts,44,12,7+pts.length);
+const S=(pts)=>scallop(pts,40,13);
 const BASIC=[
   {id:'artist',name:'넙대대'},
   {id:'round',name:'동글',d:()=>S(supe(0,0,265,255,2.15))},
@@ -282,21 +287,24 @@ const SOLIDS=[['소다','#43B5E9'],['딸기우유','#F49AB8'],['토마토','#E84
 function wrapDraw(w,h,fn){for(const dx of [-w,0,w])for(const dy of [-h,0,h])fn(dx,dy);}
 function blobPts(r,x,y,s,k,j){const o=[];for(let i=0;i<k;i++){const a=i/k*Math.PI*2,rr=s*(1-j/2+r()*j);o.push([x+rr*Math.cos(a),y+rr*Math.sin(a)]);}return chaikin(o,3);}
 function fillPts(g,v){g.beginPath();v.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fill();}
+const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+// [이름, 기본 바탕색, 기본 무늬색, 그리기(g,w,h,바탕,무늬)]
 const PATTERNS=[
- ['줄무늬',mk(800,800,(g,w,h)=>{g.fillStyle='#fff6f8';g.fillRect(0,0,w,h);g.fillStyle='#f35c8a';for(let x=23;x<w;x+=80)g.fillRect(x,0,34,h);})],
- ['땡땡이',mk(800,800,(g,w,h)=>{g.fillStyle='#4a5aa6';g.fillRect(0,0,w,h);g.fillStyle='#fff';for(let y=0,row=0;y<h+60;y+=60,row++)for(let x=row%2?30:0;x<w+60;x+=60){g.beginPath();g.arc(x,y,13,0,7);g.fill();}})],
- ['젖소',mk(800,800,(g,w,h)=>{g.fillStyle='#FBFAF6';g.fillRect(0,0,w,h);const r=rng(5);g.fillStyle='#2E2A30';
+ ['줄무늬','#FFF6F8','#F35C8A',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=f;for(let x=23;x<w;x+=80)g.fillRect(x,0,34,h);}],
+ ['땡땡이','#4A5AA6','#FFFFFF',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=f;for(let y=0,row=0;y<h+60;y+=60,row++)for(let x=row%2?30:0;x<w+60;x+=60){g.beginPath();g.arc(x,y,13,0,7);g.fill();}}],
+ ['젖소','#FBFAF6','#2E2A30',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);const r=rng(5);g.fillStyle=f;
    const C=[[120,140,110],[520,90,80],[380,420,130],[700,360,70],[160,560,85],[620,660,105],[260,780,55],[60,330,45]];
-   for(const [x,y,s] of C){const v=blobPts(r,0,0,s,9,.7);wrapDraw(w,h,(dx,dy)=>fillPts(g,v.map(p=>[p[0]+x+dx,p[1]+y+dy])));}})],
- ['깅엄',mk(800,800,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);g.fillStyle='rgba(82,168,79,.45)';for(let i=0;i<w;i+=64){g.fillRect(i,0,32,h);g.fillRect(0,i,w,32);}})],
- ['체커보드',mk(800,800,(g,w,h)=>{g.fillStyle='#FFE1EB';g.fillRect(0,0,w,h);g.fillStyle='#F35C8A';for(let y=0;y<8;y++)for(let x=0;x<8;x++)if((x+y)%2)g.fillRect(x*100,y*100,100,100);})],
- ['타탄',mk(800,800,(g,w,h)=>{g.fillStyle='#C8323C';g.fillRect(0,0,w,h);
-   const B=[[0,70,'rgba(31,42,92,.55)'],[100,24,'rgba(31,42,92,.55)'],[150,10,'rgba(244,216,74,.8)'],[160,40,'rgba(30,90,60,.5)']];
+   for(const [x,y,s] of C){const v=blobPts(r,0,0,s,9,.7);wrapDraw(w,h,(dx,dy)=>fillPts(g,v.map(p=>[p[0]+x+dx,p[1]+y+dy])));}}],
+ ['깅엄','#FFFFFF','#52A84F',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=hexA(f,.45);for(let i=0;i<w;i+=64){g.fillRect(i,0,32,h);g.fillRect(0,i,w,32);}}],
+ ['체커보드','#FFE1EB','#F35C8A',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=f;for(let y=0;y<8;y++)for(let x=0;x<8;x++)if((x+y)%2)g.fillRect(x*100,y*100,100,100);}],
+ ['타탄','#C8323C','#1F2A5C',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);
+   const B=[[0,70,hexA(f,.55)],[100,24,hexA(f,.55)],[150,10,'rgba(244,216,74,.8)'],[160,40,'rgba(30,90,60,.45)']];
    for(let o=0;o<800;o+=200)for(const [p,s,c] of B){g.fillStyle=c;g.fillRect(o+p,0,s,h);g.fillRect(0,o+p,w,s);}
-   g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=3;for(let o=0;o<800;o+=200){g.beginPath();g.moveTo(o+185,0);g.lineTo(o+185,h);g.moveTo(0,o+185);g.lineTo(w,o+185);g.stroke();}})],
- ['테라조',mk(800,800,(g,w,h)=>{g.fillStyle='#efe9e1';g.fillRect(0,0,w,h);const r=rng(7),cols=['#f35c8a','#52a84f','#f4d84a','#4a5aa6','#3a3542','#eb9b42'];for(let i=0;i<260;i++){g.fillStyle=cols[i%6];g.beginPath();const x=r()*w,y=r()*h,s=6+r()*26,k=3+Math.floor(r()*4);for(let j=0;j<k;j++){const a=j/k*Math.PI*2+r(),rr=s*(.5+r()*.6);g.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a));}g.fill();}})],
+   g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=3;for(let o=0;o<800;o+=200){g.beginPath();g.moveTo(o+185,0);g.lineTo(o+185,h);g.moveTo(0,o+185);g.lineTo(w,o+185);g.stroke();}}],
+ ['테라조','#EFE9E1','#F35C8A',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);const r=rng(7),cols=[f,'#52a84f','#f4d84a','#4a5aa6','#3a3542',f];for(let i=0;i<260;i++){g.fillStyle=cols[i%6];g.beginPath();const x=r()*w,y=r()*h,s=6+r()*26,k=3+Math.floor(r()*4);for(let j=0;j<k;j++){const a=j/k*Math.PI*2+r(),rr=s*(.5+r()*.6);g.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a));}g.fill();}}],
 ];
-let mats=[...SOLIDS.map(([name,color])=>({name,color})),...PATTERNS.map(([name,img])=>({name,img,pat:true,thumb:thumbOf(img)}))];
+function patImg(m){return mk(800,800,(g,w,h)=>m.draw(g,w,h,m.bg,m.fg));}
+let mats=[...SOLIDS.map(([name,color])=>({name,color})),...PATTERNS.map(([name,bg,fg,draw])=>{const m={name,bg,fg,bg0:bg,fg0:fg,draw,pat:true};m.img=patImg(m);m.thumb=thumbOf(m.img);return m;})];
 
 /* ---------- 상태 ---------- */
 let S0;
@@ -505,10 +513,17 @@ function renderMats(){const sg=$('#solidGrid'),gr=$('#matGrid');sg.innerHTML='';
   b.onclick=()=>{st.mat=i;coverTex();if(!m.color)select('tex');else draw();renderMats();};(m.color?sg:gr).appendChild(b);});
   syncPat();}
 // 무늬 옵션 줄: 무늬나 사진을 골랐을 때만 보임. 값은 '재료' 크기·회전과 같은 값
+// 무늬 색 팔레트: 몸통 단색 20색 + 흰색 + 먹색
+const PAT_COLORS=[['흰색','#FFFFFF'],['먹색','#2E2A30'],...SOLIDS];
+let patSig='';
+function setPatColor(which,c){const m=mats[st.mat];if(!m.pat)return;m[which]=c;m.img=patImg(m);m.thumb=thumbOf(m.img);patSig='';renderMats();draw();}
 function syncPat(){const m=mats[st.mat],box=$('#patOpt');box.hidden=!!m.color;if(m.color)return;
+  $('#patCol').hidden=!m.pat;
+  if(m.pat){const sig=st.mat+m.bg+m.fg;if(sig!==patSig){patSig=sig;swatchRow('#patBg',PAT_COLORS,()=>m.bg,c=>setPatColor('bg',c));swatchRow('#patFg',PAT_COLORS,()=>m.fg,c=>setPatColor('fg',c));}}
   $('#tileRow').hidden=!!m.pat;$('#tile').checked=st.tile;
   const deg=Math.round(((st.tex.rot*180/Math.PI+540)%360)-180);$('#patRot').value=deg;$('#patRotV').textContent=deg+'°';
   const base=baseScale('tex')*(st.tile||m.pat?.35:.9),pct=Math.round(st.tex.scale/base*100);$('#patSz').value=pct;$('#patSzV').textContent=pct+'%';}
+$('#patReset').onclick=()=>{const m=mats[st.mat];if(!m.pat)return;m.bg=m.bg0;m.fg=m.fg0;m.img=patImg(m);m.thumb=thumbOf(m.img);patSig='';renderMats();draw();};
 $('#rot90').onclick=()=>{let r=st.tex.rot+Math.PI/2;if(r>Math.PI+1e-6)r-=2*Math.PI;st.tex.rot=r;draw();};
 $('#patRot').oninput=e=>{st.tex.rot=e.target.value*Math.PI/180;draw();};
 $('#patSz').oninput=e=>{const m=mats[st.mat];st.tex.scale=baseScale('tex')*(st.tile||m.pat?.35:.9)*e.target.value/100;draw();};

@@ -122,6 +122,10 @@ for key, name, (x0, y0, x1, y1) in TYPES:
     hh, ww = core.shape
     gap = int(ww * 0.25)
     T = 0.073 * ww                                 # 지금 손·발과 같은 비율의 외곽선 굵기
+    if key == 'paw':
+        # 발가락 선이 닿던 자리의 작은 들어감을 메워 테두리를 매끈하게 (닫기 후 살짝 부드럽게)
+        c2 = blur(blur(core, 9) > 0.18, 9) > 0.82
+        core = blur(c2 | core, 2.5) > 0.5
     groups = ''
     for gid, flip, ox in (('leg-left', False, 0), ('leg-right', True, ww + gap)):
         c_ = np.fliplr(core) if flip else core
