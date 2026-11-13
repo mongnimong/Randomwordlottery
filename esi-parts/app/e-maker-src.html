@@ -57,6 +57,7 @@ button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid va
 .sw input{opacity:0;width:100%;height:100%;cursor:pointer}
 .sw.pick{background:conic-gradient(#f35c8a,#f4d84a,#43b5e9,#52a84f,#f35c8a);position:relative;overflow:hidden}
 .check{display:flex;gap:8px;align-items:center;cursor:pointer}
+.patopt{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--chip)}
 .pad-wrap{position:relative;width:100%;max-width:300px;aspect-ratio:1;margin:0 auto;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--chip)}
 #pad{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);min-width:0;flex:1}
@@ -132,12 +133,19 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
       <h2>몸통 틀</h2>
       <div class="grid" id="shapeGrid"></div>
       <h2>무엇으로 채울까</h2>
+      <div class="label">단색</div>
+      <div class="grid" id="solidGrid"></div>
+      <div class="label">무늬 · 사진</div>
+      <div class="grid" id="matGrid"></div>
       <div class="row">
         <label class="btn primary">사진 찍기<input class="vh" id="camIn" type="file" accept="image/*" capture="environment"></label>
         <label class="btn">앨범에서 고르기<input class="vh" id="fileIn" type="file" accept="image/*" multiple></label>
       </div>
-      <div class="grid" id="matGrid"></div>
-      <label class="check"><input type="checkbox" id="tile"> 패턴처럼 반복해서 채우기</label>
+      <div class="patopt" id="patOpt" hidden>
+        <div class="row"><button class="btn small" id="rot90">↻ 90° 돌리기</button><label class="check" id="tileRow"><input type="checkbox" id="tile"> 반복해서 채우기</label></div>
+        <div class="slide"><span>방향</span><input type="range" id="patRot" min="-180" max="180" value="0" aria-label="무늬 방향"><span id="patRotV">0°</span></div>
+        <div class="slide"><span>크기</span><input type="range" id="patSz" min="20" max="300" value="100" aria-label="무늬 크기"><span id="patSzV">100%</span></div>
+      </div>
       <details id="drawBox">
         <summary class="label" style="cursor:pointer">내 틀 직접 그리기</summary>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
@@ -254,14 +262,14 @@ function shapePath(id){if(shapeCache[id])return shapeCache[id];const b=BASIC.fin
 function mk(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return c;}
 function rng(s){return()=>(s=(s*16807)%2147483647)/2147483647;}
 function thumbOf(img){return mk(120,120,g=>{const s=Math.max(120/img.width,120/img.height);g.drawImage(img,(120-img.width*s)/2,(120-img.height*s)/2,img.width*s,img.height*s);}).toDataURL('image/jpeg',.8);}
-const SOLIDS=[['하늘','#43B5E9'],['자홍','#D63F8C'],['민트','#7CC2A0'],['토마토','#D9454B'],['귤','#EB9B42'],['노랑','#F4D84A'],['초록','#52A84F'],['분홍','#CC6AA0'],['남색','#4A5AA6'],['마시멜로','#F8F6EA']];
+const SOLIDS=[['소다','#43B5E9'],['딸기우유','#F49AB8'],['토마토','#E8473F'],['멜론','#8BD17C'],['용과','#F2318F'],['블루베리','#4A55B8'],['귤','#F59A2E'],['솜사탕','#FFC6DE'],['자두','#B5418A'],['레몬','#F7DB3E'],['라즈베리','#C2185B'],['민트초코','#6CCBB5'],['초코','#6B4430'],['수박','#FF5C77'],['가지','#5B3A7A'],['마시멜로','#F8F6EA']];
 const PATTERNS=[
  ['테라조',mk(800,800,(g,w,h)=>{g.fillStyle='#efe9e1';g.fillRect(0,0,w,h);const r=rng(7),cols=['#f35c8a','#52a84f','#f4d84a','#4a5aa6','#3a3542','#eb9b42'];for(let i=0;i<260;i++){g.fillStyle=cols[i%6];g.beginPath();const x=r()*w,y=r()*h,s=6+r()*26,k=3+Math.floor(r()*4);for(let j=0;j<k;j++){const a=j/k*Math.PI*2+r(),rr=s*(.5+r()*.6);g.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a));}g.fill();}})],
- ['줄무늬',mk(800,800,(g,w,h)=>{g.fillStyle='#fff6f8';g.fillRect(0,0,w,h);g.strokeStyle='#f35c8a';g.lineWidth=34;for(let i=-h;i<w+h;i+=80){g.beginPath();g.moveTo(i,0);g.lineTo(i+h,h);g.stroke();}})],
+ ['줄무늬',mk(800,800,(g,w,h)=>{g.fillStyle='#fff6f8';g.fillRect(0,0,w,h);g.fillStyle='#f35c8a';for(let x=23;x<w;x+=80)g.fillRect(x,0,34,h);})],
  ['땡땡이',mk(800,800,(g,w,h)=>{g.fillStyle='#4a5aa6';g.fillRect(0,0,w,h);g.fillStyle='#fff';for(let y=0,row=0;y<h+60;y+=60,row++)for(let x=row%2?30:0;x<w+60;x+=60){g.beginPath();g.arc(x,y,13,0,7);g.fill();}})],
  ['깅엄',mk(800,800,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);g.fillStyle='rgba(82,168,79,.45)';for(let i=0;i<w;i+=64){g.fillRect(i,0,32,h);g.fillRect(0,i,w,32);}})],
 ];
-let mats=[...SOLIDS.map(([name,color])=>({name,color})),...PATTERNS.map(([name,img])=>({name,img,thumb:thumbOf(img)}))];
+let mats=[...SOLIDS.map(([name,color])=>({name,color})),...PATTERNS.map(([name,img])=>({name,img,pat:true,thumb:thumbOf(img)}))];
 
 /* ---------- 상태 ---------- */
 let S0;
@@ -278,7 +286,7 @@ function xf(c,o,k,flip){c.setTransform(k,0,0,k,0,0);c.translate(o.x,o.y);c.rotat
 function drawMat(c,k){const m=mats[st.mat];c.save();c.setTransform(k,0,0,k,0,0);
   if(m.color){c.fillStyle=m.color;c.fillRect(-500,-500,2000,2000);}
   else{const t=st.tex,img=m.img;c.translate(t.x,t.y);c.rotate(t.rot);c.scale(t.scale,t.scale);
-    if(st.tile){const pat=c.createPattern(img,'repeat');pat.setTransform(new DOMMatrix().translate(-img.width/2,-img.height/2));c.fillStyle=pat;const R=4000/t.scale;c.fillRect(-R,-R,2*R,2*R);}
+    if(st.tile||m.pat){const pat=c.createPattern(img,'repeat');pat.setTransform(new DOMMatrix().translate(-img.width/2,-img.height/2));c.fillStyle=pat;const R=4000/t.scale;c.fillRect(-R,-R,2*R,2*R);}
     else c.drawImage(img,-img.width/2,-img.height/2);}
   c.restore();}
 // 외곽선은 면 둘레에 '화면 기준' 같은 굵기로 다시 그린다 → 크기를 바꿔도 선 굵기가 그대로
@@ -325,7 +333,7 @@ function sync(){const key=st.sel,o=obj(key);const pct=Math.round(o.scale/baseSca
   const g=GROUP(key);$('#linkRow').hidden=!g;if(g){$('#link').checked=st.link[g];$('#linkTxt').textContent=g==='hand'?'두 손 같이 움직이기':'두 발 같이 움직이기';}
   const tg=$('#target');const opts=[['tex','재료'],['body','몸통']];if(!['tex','body'].includes(key))opts.push([key,LABEL[key]+(g&&!st.link[g]?(key.endsWith('L')?' (왼쪽)':' (오른쪽)'):'')]);
   const sig=opts.map(o=>o[0]).join()+key+(g?st.link[g]:'');if(tg.dataset.sig!==sig){tg.dataset.sig=sig;tg.innerHTML='';opts.forEach(([k,n])=>{const b=document.createElement('button');b.textContent=n;b.setAttribute('aria-pressed',k===key);b.onclick=()=>select(k);tg.appendChild(b);});}
-  const off=(key==='tex'&&mats[st.mat].color)||!!st.locked[layerOf(key)];$('#sz').disabled=$('#rt').disabled=off;}
+  const off=(key==='tex'&&mats[st.mat].color)||!!st.locked[layerOf(key)];$('#sz').disabled=$('#rt').disabled=off;if(typeof syncPat==='function')syncPat();}
 function select(k){st.sel=k;draw();}
 $('#sz').oninput=e=>{setScale(st.sel,baseScale(st.sel)*e.target.value/100);draw();};
 $('#rt').oninput=e=>{setRot(st.sel,e.target.value*Math.PI/180);draw();};
@@ -436,11 +444,20 @@ $('#layerClose').onclick=()=>$('#layerSheet').hidden=true;
 $('#layerSheet').onclick=e=>{if(e.target.id==='layerSheet')$('#layerSheet').hidden=true;};
 
 /* ---------- 재료 그리드 ---------- */
-function coverTex(){const m=mats[st.mat];if(m.img){st.tex.scale=Math.max(1000/m.img.width,1000/m.img.height)*(st.tile?.35:.9);st.tex.x=st.body.x;st.tex.y=st.body.y;st.tex.rot=0;}}
-function renderMats(){const gr=$('#matGrid');gr.innerHTML='';mats.forEach((m,i)=>{const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',i===st.mat);b.title=m.name;
+function coverTex(){const m=mats[st.mat];if(m.img){st.tex.scale=Math.max(1000/m.img.width,1000/m.img.height)*(st.tile||m.pat?.35:.9);st.tex.x=st.body.x;st.tex.y=st.body.y;st.tex.rot=0;}}
+function renderMats(){const sg=$('#solidGrid'),gr=$('#matGrid');sg.innerHTML='';gr.innerHTML='';mats.forEach((m,i)=>{const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',i===st.mat);b.title=m.name;
   if(m.color){b.style.background=m.color;}else{const im=document.createElement('img');im.alt='';im.src=m.thumb;b.appendChild(im);}
   const nm=document.createElement('span');nm.className='nm';nm.textContent=m.name;b.appendChild(nm);
-  b.onclick=()=>{st.mat=i;coverTex();if(!m.color)select('tex');else draw();renderMats();};gr.appendChild(b);});}
+  b.onclick=()=>{st.mat=i;coverTex();if(!m.color)select('tex');else draw();renderMats();};(m.color?sg:gr).appendChild(b);});
+  syncPat();}
+// 무늬 옵션 줄: 무늬나 사진을 골랐을 때만 보임. 값은 '재료' 크기·회전과 같은 값
+function syncPat(){const m=mats[st.mat],box=$('#patOpt');box.hidden=!!m.color;if(m.color)return;
+  $('#tileRow').hidden=!!m.pat;$('#tile').checked=st.tile;
+  const deg=Math.round(((st.tex.rot*180/Math.PI+540)%360)-180);$('#patRot').value=deg;$('#patRotV').textContent=deg+'°';
+  const base=baseScale('tex')*(st.tile||m.pat?.35:.9),pct=Math.round(st.tex.scale/base*100);$('#patSz').value=pct;$('#patSzV').textContent=pct+'%';}
+$('#rot90').onclick=()=>{let r=st.tex.rot+Math.PI/2;if(r>Math.PI+1e-6)r-=2*Math.PI;st.tex.rot=r;draw();};
+$('#patRot').oninput=e=>{st.tex.rot=e.target.value*Math.PI/180;draw();};
+$('#patSz').oninput=e=>{const m=mats[st.mat];st.tex.scale=baseScale('tex')*(st.tile||m.pat?.35:.9)*e.target.value/100;draw();};
 async function loadFiles(files){let n=0;for(const f of files){try{const url=URL.createObjectURL(f);const im=new Image();im.src=url;await im.decode();
   const s=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight));const c=mk(Math.round(im.naturalWidth*s),Math.round(im.naturalHeight*s),(g,w,h)=>g.drawImage(im,0,0,w,h));URL.revokeObjectURL(url);
   mats.splice(SOLIDS.length,0,{name:'내 사진',img:c,thumb:thumbOf(c)});n++;}catch(err){toast('이 파일은 열 수 없어요. JPG나 PNG 사진을 골라 주세요.');}}
