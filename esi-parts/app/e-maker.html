@@ -262,7 +262,7 @@ function shapePath(id){if(shapeCache[id])return shapeCache[id];const b=BASIC.fin
 function mk(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return c;}
 function rng(s){return()=>(s=(s*16807)%2147483647)/2147483647;}
 function thumbOf(img){return mk(120,120,g=>{const s=Math.max(120/img.width,120/img.height);g.drawImage(img,(120-img.width*s)/2,(120-img.height*s)/2,img.width*s,img.height*s);}).toDataURL('image/jpeg',.8);}
-const SOLIDS=[['소다','#43B5E9'],['딸기우유','#F49AB8'],['토마토','#E8473F'],['멜론','#8BD17C'],['용과','#F2318F'],['블루베리','#4A55B8'],['귤','#F59A2E'],['솜사탕','#FFC6DE'],['말차','#9AAE4F'],['자두','#B5418A'],['레몬','#F7DB3E'],['라즈베리','#C2185B'],['민트초코','#6CCBB5'],['복숭아','#FFB89A'],['초코','#6B4430'],['타로','#B39DDB'],['수박','#FF5C77'],['흑임자','#77727D'],['가지','#5B3A7A'],['마시멜로','#F8F6EA']];
+const SOLIDS=[['소다','#43B5E9'],['딸기우유','#F49AB8'],['토마토','#E8473F'],['멜론','#6FD66A'],['용과','#F2318F'],['블루베리','#4A55B8'],['귤','#F59A2E'],['풍선껌','#FF6FB0'],['청포도','#B4D334'],['자두','#B5418A'],['레몬','#F7DB3E'],['라즈베리','#C2185B'],['민트초코','#6CCBB5'],['자몽','#FF8775'],['초코','#6B4430'],['타로','#B39DDB'],['수박','#FF5C77'],['흑임자','#77727D'],['가지','#5B3A7A'],['마시멜로','#F8F6EA']];
 const PATTERNS=[
  ['줄무늬',mk(800,800,(g,w,h)=>{g.fillStyle='#fff6f8';g.fillRect(0,0,w,h);g.fillStyle='#f35c8a';for(let x=23;x<w;x+=80)g.fillRect(x,0,34,h);})],
  ['땡땡이',mk(800,800,(g,w,h)=>{g.fillStyle='#4a5aa6';g.fillRect(0,0,w,h);g.fillStyle='#fff';for(let y=0,row=0;y<h+60;y+=60,row++)for(let x=row%2?30:0;x<w+60;x+=60){g.beginPath();g.arc(x,y,13,0,7);g.fill();}})],
