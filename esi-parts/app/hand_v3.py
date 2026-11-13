@@ -99,8 +99,9 @@ for gid, left in (('hand-left', True), ('hand-right', False)):
         c_[:, mid:] = False; n_[:, mid:] = False
     else:
         c_[:, :mid] = False; n_[:, :mid] = False
+    sg = segments(n_)
     fd = trace(c_)
-    det = ' '.join(f'M{a[0] - x0:.1f} {a[1] - y0:.1f} L{b_[0] - x0:.1f} {b_[1] - y0:.1f}' for a, b_ in segments(n_))
+    det = ' '.join(f'M{a[0] - x0:.1f} {a[1] - y0:.1f} L{b_[0] - x0:.1f} {b_[1] - y0:.1f}' for a, b_ in sg)
     body += (f'  <g id="{gid}">\n'
              f'    <path id="{gid}-line" fill="#353241" fill-rule="evenodd" d="{fd}" stroke="#353241" stroke-width="100" stroke-linejoin="round"/>\n'
              f'    <path id="{gid}-fill" fill="#F3CBB3" fill-rule="evenodd" d="{fd}"/>\n'
