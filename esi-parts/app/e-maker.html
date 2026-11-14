@@ -69,11 +69,11 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
 .modal img{width:100%;border-radius:10px;background:#fff}
 .cmp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.undoBar{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:2}
-.undoBar button{width:38px;height:34px;border:1.5px solid var(--ink);background:rgba(255,255,255,.92);color:#3a3542;font:700 18px var(--f-body);border-radius:999px;cursor:pointer;padding:0}
-.undoBar button:disabled{opacity:.35;cursor:default}
+.undoBar{position:absolute;top:6px;left:6px;display:flex;gap:2px;z-index:2}
+.undoBar button{width:30px;height:28px;border:0;background:none;color:#3a3542;font:700 19px/1 var(--f-body);cursor:pointer;padding:0}
+.undoBar button:disabled{opacity:.25;cursor:default}
 .tile .re{position:absolute;left:4px;top:4px;background:rgba(58,53,66,.85);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:2px 7px}
-.layerBtn{position:absolute;top:10px;right:10px;display:flex;gap:6px;align-items:center;border:1.5px solid var(--ink);background:rgba(255,255,255,.92);color:#3a3542;font:600 13px var(--f-body);padding:6px 10px;border-radius:999px;cursor:pointer}
+.layerBtn{position:absolute;top:8px;right:8px;display:flex;gap:4px;align-items:center;border:1.2px solid var(--ink);background:rgba(255,255,255,.92);color:#3a3542;font:600 11px var(--f-body);padding:3px 8px;border-radius:999px;cursor:pointer}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:flex;align-items:flex-end;justify-content:center}
 .sheet-card{background:var(--surface);width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
 .sheet-head{display:flex;justify-content:space-between;align-items:center}
@@ -90,11 +90,17 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
 /* 휴대폰: 캔버스+슬라이더를 위에 고정하되 화면의 절반 정도만 쓰게 (기본 규칙 뒤에 둬야 적용됨) */
 @media (max-width:880px){
   .stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px 8px;gap:6px;box-shadow:0 10px 12px -12px rgba(0,0,0,.25)}
-  .board{max-width:clamp(150px,calc(52vh - 140px),100%);border-radius:14px}
+  /* 아이폰 13 기준: 캔버스를 화면 폭에 가깝게 키우되, 아래 메뉴가 보일 자리는 남김 */
+  .board{max-width:clamp(220px,calc(100vh - 300px),100%);border-radius:14px}
+  @supports (height:100svh){.board{max-width:clamp(220px,calc(100svh - 300px),100%)}}
+  h1{font-size:22px}
+  header{margin-bottom:-4px}
   .ctrl{padding:6px 10px;gap:4px;border-radius:12px}
   .ctrl .hint,.ctrl .label{display:none}
   .ctrl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:center}
-  .ctrl>.row,.ctrl>.check{grid-column:1/-1}
+  /* 움직일 대상 줄과 '같이 움직이기'를 한 줄에 → 고정 영역 높이 절약 */
+  .ctrl>.row{grid-column:1;grid-row:1}
+  .ctrl>.check{grid-column:2;grid-row:1;justify-self:end;font-size:12px;white-space:nowrap}
   .ctrl .slide{grid-template-columns:auto minmax(0,1fr) 36px;gap:6px}
   .ctrl .slide span:last-child{font-size:11px}
   .seg button{padding:4px 10px;font-size:13px}
@@ -115,7 +121,7 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
   </header>
 
   <section class="stage">
-    <div class="board clear" id="board"><canvas id="cv" width="1000" height="1000" aria-label="E씨 조립 캔버스"></canvas><div class="undoBar"><button id="undo" aria-label="되돌리기" disabled>↶</button><button id="redo" aria-label="다시하기" disabled>↷</button></div><button class="layerBtn" id="layerBtn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5Z M2 13l10 5 10-5 M2 17.5l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>레이어</button></div>
+    <div class="board clear" id="board"><canvas id="cv" width="1000" height="1000" aria-label="E씨 조립 캔버스"></canvas><div class="undoBar"><button id="undo" aria-label="되돌리기" disabled>←</button><button id="redo" aria-label="다시하기" disabled>→</button></div><button class="layerBtn" id="layerBtn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5Z M2 13l10 5 10-5 M2 17.5l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>레이어</button></div>
     <div class="ctrl">
       <div class="row"><span class="label">움직일 대상</span><div class="seg" id="target"></div></div>
       <div class="slide"><span>크기</span><input type="range" id="sz" min="20" max="300" value="100"><span id="szv">100%</span></div>
