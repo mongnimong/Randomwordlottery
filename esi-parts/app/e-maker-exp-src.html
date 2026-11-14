@@ -1,0 +1,729 @@
+<title>E씨 공방</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: 흰 작업 보드(왼쪽/위) + 파츠 도구 패널(오른쪽/아래). 그림체는 먹선·플랫 */
+:root{
+  --bg:#f4f3f6; --surface:#ffffff; --fg:#3a3542; --muted:#7a7484; --line:#e2e0e6;
+  --ink:#3a3542; --accent:#43b5e9; --accent-ink:#ffffff; --chip:#eeedf1; --hot:#f35c8a;
+  --f-display:"Jua","Apple SD Gothic Neo",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#18161c; --surface:#221f27; --fg:#ece9f0; --muted:#a29cab; --line:#34303b; --chip:#2c2833; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18161c; --surface:#221f27; --fg:#ece9f0; --muted:#a29cab; --line:#34303b; --chip:#2c2833; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.app{max-width:1100px;margin:0 auto;display:grid;gap:20px;grid-template-columns:minmax(0,1fr) 390px;align-items:start}
+@media (max-width:880px){.app{grid-template-columns:minmax(0,1fr)}}
+header{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-weight:400;font-size:32px;margin:0}
+header p{margin:0;color:var(--muted)}
+.stage{display:flex;flex-direction:column;gap:12px;min-width:0}
+.board{position:relative;width:100%;max-width:640px;margin:0 auto;aspect-ratio:1;border-radius:18px;overflow:hidden;background:#ffffff;box-shadow:0 0 0 1px var(--line)}
+.board.clear{background:repeating-conic-gradient(#e7e5ea 0 25%,#ffffff 0 50%) 0 0/24px 24px}
+#cv{width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab}
+.ctrl{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.label{font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.seg{display:inline-flex;background:var(--chip);border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-weight:500;padding:6px 12px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.slide{display:grid;grid-template-columns:44px minmax(0,1fr) 48px;gap:8px;align-items:center}
+.slide span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.btn{border:1.5px solid var(--ink);background:var(--surface);color:var(--fg);font:inherit;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.small{padding:5px 10px;font-size:13px}
+button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;min-width:0}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:transparent;color:var(--muted);font-family:var(--f-display);font-size:18px;padding:12px 4px;cursor:pointer;border-bottom:3px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--ink)}
+.pane{padding:16px;display:flex;flex-direction:column;gap:14px}
+.pane h2{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.tile{position:relative;aspect-ratio:1;border:2px solid var(--line);border-radius:12px;background:var(--chip);padding:0;cursor:pointer;overflow:hidden;color:var(--fg)}
+.tile[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}
+.tile img,.tile canvas{width:100%;height:100%;object-fit:cover;display:block}
+.tile .nm{position:absolute;left:0;right:0;bottom:0;font-size:10px;background:rgba(58,53,66,.7);color:#fff;text-align:center}
+.tile .x{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:0;background:rgba(58,53,66,.8);color:#fff;font-size:12px;line-height:20px;padding:0;cursor:pointer}
+.tile.add{display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--muted);border-style:dashed}
+.sw{width:32px;height:32px;border-radius:50%;border:2px solid var(--ink);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--ink)}
+.sw input{opacity:0;width:100%;height:100%;cursor:pointer}
+.sw.pick{background:conic-gradient(#f35c8a,#f4d84a,#43b5e9,#52a84f,#f35c8a);position:relative;overflow:hidden}
+.check{display:flex;gap:8px;align-items:center;cursor:pointer}
+.patopt{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--chip)}
+.pad-wrap{position:relative;width:100%;max-width:300px;aspect-ratio:1;margin:0 auto;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--chip)}
+#pad{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);min-width:0;flex:1}
+.boardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.boardgrid .tile{background:#fff}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-weight:500;z-index:30;max-width:calc(100% - 32px);text-align:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:40;padding:24px}
+.modal .card{background:var(--surface);border-radius:16px;padding:16px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow:auto}
+.modal img{width:100%;border-radius:10px;background:#fff}
+.cmp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.undoBar{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:2}
+.undoBar button{width:38px;height:34px;border:1.5px solid var(--ink);background:rgba(255,255,255,.92);color:#3a3542;font:700 18px var(--f-body);border-radius:999px;cursor:pointer;padding:0}
+.undoBar button:disabled{opacity:.35;cursor:default}
+.tile .re{position:absolute;left:4px;top:4px;background:rgba(58,53,66,.85);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:2px 7px}
+.layerBtn{position:absolute;top:10px;right:10px;display:flex;gap:6px;align-items:center;border:1.5px solid var(--ink);background:rgba(255,255,255,.92);color:#3a3542;font:600 13px var(--f-body);padding:6px 10px;border-radius:999px;cursor:pointer}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet-card{background:var(--surface);width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.sheet-head{display:flex;justify-content:space-between;align-items:center}
+.sheet-head h2{font-family:var(--f-display);font-weight:400;font-size:22px;margin:0}
+.layers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.layers li{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px;align-items:center;background:var(--chip);border-radius:14px;padding:6px 8px}
+.layers li.sel{box-shadow:0 0 0 2px var(--ink) inset}
+.layers .nm{border:0;background:transparent;color:var(--fg);font:600 16px var(--f-body);text-align:left;padding:8px 6px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.layers .dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink)}
+.layers .ic{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.layers .ic:disabled{opacity:.3;cursor:default}
+.layers .ic[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.layers li.locked .nm{opacity:.55}
+/* 휴대폰: 캔버스+슬라이더를 위에 고정하되 화면의 절반 정도만 쓰게 (기본 규칙 뒤에 둬야 적용됨) */
+@media (max-width:880px){
+  .stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px 8px;gap:6px;box-shadow:0 10px 12px -12px rgba(0,0,0,.25)}
+  .board{max-width:clamp(150px,calc(52vh - 140px),100%);border-radius:14px}
+  .ctrl{padding:6px 10px;gap:4px;border-radius:12px}
+  .ctrl .hint,.ctrl .label{display:none}
+  .ctrl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:center}
+  .ctrl>.row,.ctrl>.check{grid-column:1/-1}
+  .ctrl .slide{grid-template-columns:auto minmax(0,1fr) 36px;gap:6px}
+  .ctrl .slide span:last-child{font-size:11px}
+  .seg button{padding:4px 10px;font-size:13px}
+  .slide{grid-template-columns:34px minmax(0,1fr) 40px;font-size:13px}
+  .check{font-size:13px}
+  header p{display:none}
+  /* 탭 메뉴도 캔버스 바로 밑에 고정 (--stage-h는 스크립트가 캔버스 영역 높이로 채움) */
+  .panel{overflow:clip}
+  .tabs{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--stage-h,0px));z-index:4;background:var(--surface);border-radius:14px 14px 0 0}
+  .tabs button{padding:9px 4px;font-size:17px}
+}
+</style>
+
+<div class="app">
+  <header>
+    <h1>E씨 공방</h1>
+    <p>작가 원본 파츠로 E씨를 조립해요. 몸통에 사진이나 패턴을 채우고, 손·발·입을 옮기고 키워 보세요.</p>
+  </header>
+
+  <section class="stage">
+    <div class="board clear" id="board"><canvas id="cv" width="1000" height="1000" aria-label="E씨 조립 캔버스"></canvas><div class="undoBar"><button id="undo" aria-label="되돌리기" disabled>↶</button><button id="redo" aria-label="다시하기" disabled>↷</button></div><button class="layerBtn" id="layerBtn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5Z M2 13l10 5 10-5 M2 17.5l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>레이어</button></div>
+    <div class="ctrl">
+      <div class="row"><span class="label">움직일 대상</span><div class="seg" id="target"></div></div>
+      <div class="slide"><span>크기</span><input type="range" id="sz" min="20" max="300" value="100"><span id="szv">100%</span></div>
+      <div class="slide"><span>회전</span><input type="range" id="rt" min="-180" max="180" value="0"><span id="rtv">0°</span></div>
+      <label class="check" id="linkRow" hidden><input type="checkbox" id="link" checked> <span id="linkTxt">두 손 같이 움직이기</span></label>
+      <p class="hint">손·발·입은 바로 잡아서 옮겨요. 몸통과 재료는 위에서 "몸통"이나 "재료"를 고른 뒤 움직여요. 빈 곳을 쓸면 화면이 내려가요.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="body">몸통</button>
+      <button role="tab" aria-selected="false" data-tab="limb">손·발</button>
+      <button role="tab" aria-selected="false" data-tab="mouth">입</button>
+      <button role="tab" aria-selected="false" data-tab="out">완성</button>
+    </div>
+
+    <div class="pane" data-pane="body">
+      <h2>몸통 틀</h2>
+      <div class="grid" id="shapeGrid"></div>
+      <h2>무엇으로 채울까</h2>
+      <div class="label">단색</div>
+      <div class="grid" id="solidGrid"></div>
+      <div class="label">무늬 · 사진</div>
+      <div class="grid" id="matGrid"></div>
+      <div class="row">
+        <label class="btn primary">사진 찍기<input class="vh" id="camIn" type="file" accept="image/*" capture="environment"></label>
+        <label class="btn">앨범에서 고르기<input class="vh" id="fileIn" type="file" accept="image/*" multiple></label>
+      </div>
+      <div class="patopt" id="patOpt" hidden>
+        <div class="row"><button class="btn small" id="rot90">↻ 90° 돌리기</button><label class="check" id="tileRow"><input type="checkbox" id="tile"> 반복해서 채우기</label></div>
+        <div class="slide"><span>방향</span><input type="range" id="patRot" min="-180" max="180" value="0" aria-label="무늬 방향"><span id="patRotV">0°</span></div>
+        <div class="slide"><span>크기</span><input type="range" id="patSz" min="20" max="300" value="100" aria-label="무늬 크기"><span id="patSzV">100%</span></div>
+        <div id="patCol">
+          <div class="label" style="margin:2px 0 4px">바탕색</div><div class="row" id="patBg"></div>
+          <div class="label" style="margin:8px 0 4px">무늬색</div><div class="row" id="patFg"></div>
+          <div class="row" style="margin-top:6px"><button class="btn small" id="patReset">원래 색으로</button></div>
+        </div>
+      </div>
+      <details id="drawBox">
+        <summary class="label" style="cursor:pointer">내 틀 직접 그리기</summary>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+          <div class="pad-wrap"><canvas id="pad" width="400" height="400" aria-label="틀 그리기 패드"></canvas></div>
+          <div class="row"><label class="check"><input type="checkbox" id="sym" checked> 좌우대칭</label><button class="btn small" id="padClear">다시 그리기</button></div>
+          <div class="row"><input type="text" id="shapeName" placeholder="틀 이름" maxlength="12"><button class="btn primary small" id="padSave">내 틀로 저장</button></div>
+          <p class="hint">좌우대칭이 켜져 있으면 반쪽만 그려도, 모양 전체를 그려도 좌우가 똑같이 맞춰져요. 그린 크기 그대로 몸통 크기가 돼요. 가장자리는 자동으로 뽀글 선이 돼요.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="pane" data-pane="limb" hidden>
+      <h2>발 모양</h2>
+      <div class="grid" id="footGrid" style="grid-template-columns:repeat(3,1fr)"></div>
+      <h2>손 색</h2>
+      <div class="row" id="handSw"></div>
+      <h2>발 색</h2>
+      <div class="row" id="legSw"></div>
+      <div class="row">
+        <button class="btn small" data-sel="handL">손 고르기</button>
+        <button class="btn small" data-sel="legL">발 고르기</button>
+      </div>
+      <p class="hint">손과 발은 기본으로 한 쌍이 같이 움직여요. 한쪽만 바꾸고 싶으면 아래 체크를 끄세요.</p>
+    </div>
+
+    <div class="pane" data-pane="mouth" hidden>
+      <h2>입 모양</h2>
+      <div class="grid" id="mouthGrid" style="grid-template-columns:repeat(3,1fr)"></div>
+      <h2>입안색</h2>
+      <div class="row" id="inSw"></div>
+      <h2>혀색</h2>
+      <div class="row" id="tgSw"></div>
+      <div class="row"><button class="btn small" data-sel="mouth">입 고르기</button></div>
+      <p class="hint">이빨은 흰색으로 고정이에요. 혀가 없는 입(활짝 미소, 상어 이빨, 이 빠진 입)은 입안색만 바뀌어요.</p>
+    </div>
+
+    <div class="pane" data-pane="out" hidden>
+      <h2>🧪 새 파츠 만들기 (실험)</h2>
+      <div class="patopt">
+        <p class="hint" style="margin:0">흰 종이에 그린 파츠 그림(사진·스캔)을 올리면, 흰 바탕을 자동으로 지우고 캔버스에 붙여요. 끌어서 옮기고, 두 손가락이나 슬라이더로 크기·회전을 바꿔요.</p>
+        <div class="row"><label class="btn primary small">그림 올리기<input class="vh" id="stkIn" type="file" accept="image/*"></label><button class="btn small" id="stkDel">지우기</button><button class="btn small" id="stkOrig">원래 색</button></div>
+        <div class="label" style="margin-top:4px">살색(채운 부분) 색 바꾸기</div><div class="row" id="stkSw"></div>
+      </div>
+      <h2>마무리</h2>
+      <div class="row"><span class="label">배경</span>
+        <div class="seg" id="bgSeg"><button data-v="clear" aria-pressed="true">투명</button><button data-v="#ffffff" aria-pressed="false">흰색</button><button data-v="#fff3b0" aria-pressed="false">노랑</button><button data-v="#dff1fb" aria-pressed="false">하늘</button></div>
+      </div>
+      <div class="row">
+        <label class="btn small">📷 카메라로 찍기<input class="vh" id="bgCam" type="file" accept="image/*" capture="environment"></label>
+        <label class="btn small">앨범 사진으로<input class="vh" id="bgFile" type="file" accept="image/*"></label>
+      </div>
+      <p class="hint">배경 사진을 찍으면 E씨 뒤에 깔려요. 손·발·입·몸통을 옮기고 키워서 자리를 잡은 뒤 저장하세요.</p>
+      <div class="row">
+        <button class="btn primary" id="save">PNG로 저장</button>
+        <button class="btn" id="toBoard">비교 보드에 담기</button>
+      </div>
+      <div class="row">
+        <button class="btn small" id="rand">랜덤으로 섞기</button>
+        <button class="btn small" id="reset">처음 모습으로</button>
+      </div>
+      <h2>비교 보드</h2>
+      <div class="boardgrid" id="boardGrid"></div>
+      <p class="hint" id="boardHint">담은 E씨가 여기에 나란히 모여요. 두 개를 눌러 고르면 크게 나란히 비교해요.</p>
+    </div>
+  </section>
+</div>
+<div id="layerSheet" class="sheet" hidden role="dialog" aria-label="레이어">
+  <div class="sheet-card">
+    <div class="sheet-head"><h2>레이어</h2><button class="btn small" id="layerClose">닫기</button></div>
+    <ol id="layerList" class="layers"></ol>
+    <p class="hint">위에 있을수록 앞에 보여요. 화살표로 순서를 바꾸고, 자물쇠로 잠그면 그 파츠는 손대도 움직이지 않아요. 이름을 누르면 그 파츠가 선택돼요.</p>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+<div id="modal" class="modal" hidden><div class="card"><div id="mBody"></div><p class="hint" id="mHint"></p><button class="btn" id="mClose">닫기</button></div></div>
+
+<script>
+const PARTS=/*PARTS_DATA*/null;
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const cv=$('#cv'),ctx=cv.getContext('2d');
+const INK='#3A3542';
+const K=1.35, MX=x=>500+(x-400)*K, MY=y=>540+(y-330)*K;   // 조립 좌표 → 캔버스 좌표
+const PATH={};
+for(const k in PARTS){if(k==='mouths'||k==='feet')continue;PATH[k]={};for(const n in PARTS[k].p)PATH[k][n]=new Path2D(PARTS[k].p[n]);PATH[k].detailD=PARTS[k].p.detail||'';}
+const MPATH={};for(const k in PARTS.mouths){MPATH[k]={};for(const n in PARTS.mouths[k].p)if(PARTS.mouths[k].p[n])MPATH[k][n]=new Path2D(PARTS.mouths[k].p[n]);}
+const FPATH={};for(const k in PARTS.feet){FPATH[k]={};for(const sd of ['L','R']){FPATH[k][sd]={};for(const n in PARTS.feet[k][sd].p)FPATH[k][sd][n]=new Path2D(PARTS.feet[k][sd].p[n]);FPATH[k][sd].detailD=PARTS.feet[k][sd].p.detail||'';}}
+const footDef=(key,type)=>PARTS.feet[type||st.footType][key==='legL'?'L':'R'];
+const pathOf=key=>key.startsWith('leg')?FPATH[st.footType][key==='legL'?'L':'R']:PATH[key];
+// 레이어: 뒤→앞 순서. 손·발은 한 쌍이 한 레이어. 재료는 몸통 레이어에 속함.
+const LAYER_NAME={mouth:'입',hand:'손',body:'몸통',leg:'발',stk:'새 파츠'};
+const layerOf=k=>k==='tex'?'body':k.startsWith('hand')?'hand':k.startsWith('leg')?'leg':k;
+const LABEL={tex:'재료',body:'몸통',handL:'손',handR:'손',legL:'발',legR:'발',mouth:'입',stk:'새 파츠'};
+const PAIR={handL:'handR',handR:'handL',legL:'legR',legR:'legL'};
+const GROUP=k=>k.startsWith('hand')?'hand':k.startsWith('leg')?'leg':null;
+
+/* ---------- 뽀글 틀 생성 ---------- */
+const rot2=(p,a)=>[p[0]*Math.cos(a)-p[1]*Math.sin(a),p[0]*Math.sin(a)+p[1]*Math.cos(a)];
+function supe(cx,cy,a,b,n,r=0,N=140){const o=[];for(let i=0;i<N;i++){const t=i/N*Math.PI*2,c=Math.cos(t),s=Math.sin(t);let p=[a*Math.sign(c)*Math.pow(Math.abs(c),2/n),b*Math.sign(s)*Math.pow(Math.abs(s),2/n)];if(r)p=rot2(p,r);o.push([cx+p[0],cy+p[1]]);}return o;}
+function dens(v,k){const o=[];for(let i=0;i<v.length;i++){const p=v[i],q=v[(i+1)%v.length];for(let j=0;j<k;j++)o.push([p[0]+(q[0]-p[0])*j/k,p[1]+(q[1]-p[1])*j/k]);}return o;}
+function chaikin(v,it){for(let k=0;k<it;k++){const o=[];for(let i=0;i<v.length;i++){const p=v[i],q=v[(i+1)%v.length];o.push([.75*p[0]+.25*q[0],.75*p[1]+.25*q[1]],[.25*p[0]+.75*q[0],.25*p[1]+.75*q[1]]);}v=o;}return v;}
+function resample(v,step){const n=v.length,L=[0];for(let i=0;i<n;i++){const p=v[i],q=v[(i+1)%n];L.push(L[i]+Math.hypot(q[0]-p[0],q[1]-p[1]));}const tot=L[n],N=Math.max(10,Math.round(tot/step)),o=[];let j=0;for(let k=0;k<N;k++){const d=k*tot/N;while(j<n-1&&L[j+1]<d)j++;const p=v[j],q=v[(j+1)%n],t=(d-L[j])/((L[j+1]-L[j])||1);o.push([p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t]);}return o;}
+function area(v){let a=0;for(let i=0;i<v.length;i++){const p=v[i],q=v[(i+1)%v.length];a+=p[0]*q[1]-q[0]*p[1];}return a;}
+const f1=n=>Math.round(n*10)/10;
+function scallop(v,step,h){const r=resample(v,step),n=r.length,sg=area(r)>0?1:-1;let d='M'+f1(r[0][0])+' '+f1(r[0][1]);for(let i=0;i<n;i++){const p=r[i],q=r[(i+1)%n],dx=q[0]-p[0],dy=q[1]-p[1],l=Math.hypot(dx,dy)||1;d+=' Q'+f1((p[0]+q[0])/2+sg*dy/l*h)+' '+f1((p[1]+q[1])/2-sg*dx/l*h)+' '+f1(q[0])+' '+f1(q[1]);}return d+' Z';}
+// 틀은 원점 중심, 원본 몸통과 비슷한 크기(가로 약 600)
+// 넙대대 손그림처럼: 뽀글 폭 0.55~1.6배, 높이 0.5~1.7배, 골은 V자로 콕. 같은 틀은 늘 같은 모양(시드 고정)
+function scallopWild(v,step,h,seed){const r=rng(seed),n=v.length,L=[0];for(let i=0;i<n;i++){const p=v[i],q=v[(i+1)%n];L.push(L[i]+Math.hypot(q[0]-p[0],q[1]-p[1]));}
+  const tot=L[n],at=d=>{let j=0;while(j<n-1&&L[j+1]<d)j++;const p=v[j],q=v[(j+1)%n],t=(d-L[j])/((L[j+1]-L[j])||1);return[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t];};
+  const D=[0];while(D[D.length-1]<tot)D.push(D[D.length-1]+step*(.55+r()*1.05));if(tot-D[D.length-2]<step*.6)D.splice(D.length-2,1);D[D.length-1]=tot;
+  const sg=area(v)>0?1:-1,P=D.map(at);let d='M'+f1(P[0][0])+' '+f1(P[0][1]);
+  for(let i=0;i<P.length-1;i++){const p=P[i],q=P[i+1],dx=q[0]-p[0],dy=q[1]-p[1],l=Math.hypot(dx,dy)||1,hh=h*(l/step)*(.5+r()*1.2),sk=(r()-.5)*.35;
+    const mx=p[0]+dx*(.5+sk),my=p[1]+dy*(.5+sk);
+    // 두 번 나눈 곡선: 끝점에서 바깥으로 바로 솟아 V자 골이 생기게
+    d+=' C'+f1(p[0]+sg*dy/l*hh*1.25+dx*.08)+' '+f1(p[1]-sg*dx/l*hh*1.25+dy*.08)+' '+f1(mx-dx*.28+sg*dy/l*hh*1.33)+' '+f1(my-dy*.28-sg*dx/l*hh*1.33)+' '+f1(mx+sg*dy/l*hh*1.33)+' '+f1(my-sg*dx/l*hh*1.33);
+    d+=' C'+f1(mx+dx*.28+sg*dy/l*hh*1.33)+' '+f1(my+dy*.28-sg*dx/l*hh*1.33)+' '+f1(q[0]+sg*dy/l*hh*1.25-dx*.08)+' '+f1(q[1]-sg*dx/l*hh*1.25-dy*.08)+' '+f1(q[0])+' '+f1(q[1]);}
+  return d+' Z';}
+const S=(pts)=>scallop(pts,40,13);
+const BASIC=[
+  {id:'artist',name:'넙대대'},
+  {id:'round',name:'동글',d:()=>S(supe(0,0,265,255,2.15))},
+  {id:'cube',name:'반듯',d:()=>S(supe(0,0,262,248,5))},
+  {id:'egg',name:'갸름',d:()=>{const v=[];for(let i=0;i<140;i++){const t=i/140*Math.PI*2,c=Math.cos(t),s=Math.sin(t);v.push(rot2([205*c*(1+.1*s),270*s],-.24));}return S(v);}},
+  {id:'heart',name:'콩닥',d:()=>{const v=[];for(let i=0;i<160;i++){const t=i/160*Math.PI*2;v.push([19*16*Math.pow(Math.sin(t),3),-19*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))-40]);}return S(v);}},
+  {id:'stack',name:'오뚝',d:()=>S(supe(0,-135,230,150,2.4))+' '+S(supe(0,110,262,160,2.4))},
+  {id:'can',name:'말랑',d:()=>S(supe(0,-10,185,262,4.2).map(p=>[p[0]*(1+.05*Math.cos((p[1]+10)/262*Math.PI/2)),p[1]]))},
+  {id:'ghost',name:'흐물',d:()=>{const v=[];for(let i=0;i<=40;i++){const t=Math.PI+Math.PI*i/40;v.push([240*Math.cos(t),-60+220*Math.sin(t)]);}for(let y=-40;y<230;y+=20)v.push([240,y]);for(let i=0;i<=60;i++){const u=i/60;v.push([240-480*u,240+18*Math.sin(u*Math.PI*6)]);}for(let y=220;y>-60;y-=20)v.push([-240,y]);return S(v);}},
+  {id:'tri',name:'뾰족',d:()=>S(chaikin(dens([[0,-270],[275,250],[-275,250]],6),3))},
+  {id:'tall',name:'홀쭉',d:()=>S(supe(0,0,200,290,2.6))},
+];
+let custom=[];
+const shapeCache={};
+function shapePath(id){if(shapeCache[id])return shapeCache[id];const b=BASIC.find(s=>s.id===id);const c=custom.find(s=>s.id===id);
+  const d=b&&b.d?b.d():c?c.d:null;return shapeCache[id]=d?new Path2D(d):null;}
+
+/* ---------- 재료 ---------- */
+function mk(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return c;}
+function rng(s){return()=>(s=(s*16807)%2147483647)/2147483647;}
+function thumbOf(img){return mk(120,120,g=>{const s=Math.max(120/img.width,120/img.height);g.drawImage(img,(120-img.width*s)/2,(120-img.height*s)/2,img.width*s,img.height*s);}).toDataURL('image/jpeg',.8);}
+const SOLIDS=[['소다','#43B5E9'],['딸기우유','#F49AB8'],['토마토','#E8473F'],['멜론','#6FD66A'],['용과','#F2318F'],['블루베리','#4A55B8'],['귤','#F59A2E'],['풍선껌','#FF6FB0'],['청포도','#B4D334'],['자두','#B5418A'],['레몬','#F7DB3E'],['라즈베리','#C2185B'],['민트초코','#6CCBB5'],['자몽','#FF8775'],['초코','#6B4430'],['타로','#B39DDB'],['수박','#FF5C77'],['흑임자','#77727D'],['가지','#5B3A7A'],['마시멜로','#F8F6EA']];
+function wrapDraw(w,h,fn){for(const dx of [-w,0,w])for(const dy of [-h,0,h])fn(dx,dy);}
+function blobPts(r,x,y,s,k,j){const o=[];for(let i=0;i<k;i++){const a=i/k*Math.PI*2,rr=s*(1-j/2+r()*j);o.push([x+rr*Math.cos(a),y+rr*Math.sin(a)]);}return chaikin(o,3);}
+function fillPts(g,v){g.beginPath();v.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fill();}
+const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+// [이름, 기본 바탕색, 기본 무늬색, 그리기(g,w,h,바탕,무늬)]
+const PATTERNS=[
+ ['줄무늬','#FFF6F8','#F35C8A',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=f;for(let x=23;x<w;x+=80)g.fillRect(x,0,34,h);}],
+ ['땡땡이','#4A5AA6','#FFFFFF',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=f;for(let y=0,row=0;y<h+60;y+=60,row++)for(let x=row%2?30:0;x<w+60;x+=60){g.beginPath();g.arc(x,y,13,0,7);g.fill();}}],
+ ['젖소','#FBFAF6','#2E2A30',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);const r=rng(5);g.fillStyle=f;
+   const C=[[120,140,110],[520,90,80],[380,420,130],[700,360,70],[160,560,85],[620,660,105],[260,780,55],[60,330,45]];
+   for(const [x,y,s] of C){const v=blobPts(r,0,0,s,9,.7);wrapDraw(w,h,(dx,dy)=>fillPts(g,v.map(p=>[p[0]+x+dx,p[1]+y+dy])));}}],
+ ['깅엄','#FFFFFF','#52A84F',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=hexA(f,.45);for(let i=0;i<w;i+=64){g.fillRect(i,0,32,h);g.fillRect(0,i,w,32);}}],
+ ['체커보드','#FFE1EB','#F35C8A',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);g.fillStyle=f;for(let y=0;y<8;y++)for(let x=0;x<8;x++)if((x+y)%2)g.fillRect(x*100,y*100,100,100);}],
+ ['타탄','#C8323C','#1F2A5C',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);
+   const B=[[0,70,hexA(f,.55)],[100,24,hexA(f,.55)],[150,10,'rgba(244,216,74,.8)'],[160,40,'rgba(30,90,60,.45)']];
+   for(let o=0;o<800;o+=200)for(const [p,s,c] of B){g.fillStyle=c;g.fillRect(o+p,0,s,h);g.fillRect(0,o+p,w,s);}
+   g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=3;for(let o=0;o<800;o+=200){g.beginPath();g.moveTo(o+185,0);g.lineTo(o+185,h);g.moveTo(0,o+185);g.lineTo(w,o+185);g.stroke();}}],
+ ['테라조','#EFE9E1','#F35C8A',(g,w,h,b,f)=>{g.fillStyle=b;g.fillRect(0,0,w,h);const r=rng(7),cols=[f,'#52a84f','#f4d84a','#4a5aa6','#3a3542',f];for(let i=0;i<260;i++){g.fillStyle=cols[i%6];g.beginPath();const x=r()*w,y=r()*h,s=6+r()*26,k=3+Math.floor(r()*4);for(let j=0;j<k;j++){const a=j/k*Math.PI*2+r(),rr=s*(.5+r()*.6);g.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a));}g.fill();}}],
+];
+function patImg(m){return mk(800,800,(g,w,h)=>m.draw(g,w,h,m.bg,m.fg));}
+let mats=[...SOLIDS.map(([name,color])=>({name,color})),...PATTERNS.map(([name,bg,fg,draw])=>{const m={name,bg,fg,bg0:bg,fg0:fg,draw,pat:true};m.img=patImg(m);m.thumb=thumbOf(m.img);return m;})];
+
+/* ---------- 상태 ---------- */
+let S0;
+function defaults(){const P=k=>({x:MX(PARTS[k].x),y:MY(PARTS[k].y),scale:K,rot:0});const F=k=>{const d=PARTS.feet.bend[k==='legL'?'L':'R'];return{x:MX(d.x),y:MY(d.y),scale:K,rot:0};};
+  return {body:P('body'),handL:P('handL'),handR:P('handR'),legL:F('legL'),legR:F('legR'),mouth:P('mouth'),
+    footType:'bend',order:['leg','body','hand','mouth'],locked:{},
+    tex:{x:500,y:500,scale:1,rot:0},mat:0,tile:false,shape:'artist',
+    mouthType:'tongue_big',handColor:'#F3CBB3',legColor:'#F9C2A9',inside:'#3A3542',tongue:'#E23B6E',bg:'clear',
+    link:{hand:true,leg:true},sel:'handL'};}
+let st=defaults();
+
+/* ---------- 그리기 ---------- */
+function xf(c,o,k,flip){c.setTransform(k,0,0,k,0,0);c.translate(o.x,o.y);c.rotate(o.rot);c.scale(o.scale,o.scale);}
+function drawMat(c,k){const m=mats[st.mat];c.save();c.setTransform(k,0,0,k,0,0);
+  if(m.color){c.fillStyle=m.color;c.fillRect(-500,-500,2000,2000);}
+  else{const t=st.tex,img=m.img;c.translate(t.x,t.y);c.rotate(t.rot);c.scale(t.scale,t.scale);
+    if(st.tile||m.pat){const pat=c.createPattern(img,'repeat');pat.setTransform(new DOMMatrix().translate(-img.width/2,-img.height/2));c.fillStyle=pat;const R=4000/t.scale;c.fillRect(-R,-R,2*R,2*R);}
+    else c.drawImage(img,-img.width/2,-img.height/2);}
+  c.restore();}
+// 외곽선은 면 둘레에 '화면 기준' 같은 굵기로 다시 그린다 → 크기를 바꿔도 선 굵기가 그대로
+const LWPX=key=>PARTS[key].lw*K;
+function detailLine(c,path,key,o){c.lineCap='round';c.lineJoin='round';c.strokeStyle=INK;c.lineWidth=LWPX(key)*0.85/o.scale;c.stroke(path);}
+function outline(c,path,key,o){c.lineJoin='round';c.lineCap='round';c.strokeStyle=INK;c.lineWidth=2*LWPX(key)/o.scale;c.stroke(path);}
+function drawLimb(c,key,color,k){c.save();const o=st[key];xf(c,o,k);const P=pathOf(key);outline(c,P.fill,key,o);c.fillStyle=color;c.fill(P.fill,'evenodd');if(P.detail){if(P.detailD&&segsOf(P).length)grooveLines(c,P,key,o);else detailLine(c,P.detail,key,o);}c.restore();}
+// 홈 선이 외곽에 닿는 곳: 외곽선이 안으로 접혀 들어가듯 부드럽게 벌어지는 이음새(Y자 필렛)를 그린다
+const fc=document.createElement('canvas').getContext('2d'),SEGC=new Map();
+function segsOf(P){if(SEGC.has(P.detailD))return SEGC.get(P.detailD);const n=(P.detailD.match(/-?\d*\.?\d+/g)||[]).map(Number),out=[];
+  for(let i=0;i+3<n.length;i+=4){let a=[n[i],n[i+1]],b=[n[i+2],n[i+3]];const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,u=[(b[0]-a[0])/L,(b[1]-a[1])/L];
+    const outA=!fc.isPointInPath(P.fill,a[0]-u[0]*3,a[1]-u[1]*3),outB=!fc.isPointInPath(P.fill,b[0]+u[0]*3,b[1]+u[1]*3);
+    if(outA)out.push({e:a,u});if(outB)out.push({e:b,u:[-u[0],-u[1]]});}
+  SEGC.set(P.detailD,out);return out;}
+// 손가락·발가락·하트 홈 규칙 (몽니님 원본 드로잉 참고)
+// 1) 골에서 외곽선과 같은 굵기로 끊김 없이 이어짐(살짝 벌어지는 이음새)  2) 안쪽으로 갈수록 부드럽게 가늘어짐
+// 3) 끝은 동그랗고 뭉툭하게  4) 발가락 선은 살짝 휘어 들어가는 짧은 곡선. 굵기는 화면 기준 고정
+function grooveLines(c,P,key,o){const s=1/o.scale,LW=LWPX(key)*s,n0=(P.detailD.match(/-?\d*\.?\d+/g)||[]).map(Number);c.fillStyle=INK;
+  const isHand=key.startsWith('hand'),isPaw=!isHand&&st.footType==='paw',sideSign=key.endsWith('R')?-1:1;
+  for(const {e,u} of segsOf(P)){
+    let len=0;for(let i=0;i+3<n0.length;i+=4){const a=[n0[i],n0[i+1]],b=[n0[i+2],n0[i+3]];if((a[0]===e[0]&&a[1]===e[1])||(b[0]===e[0]&&b[1]===e[1]))len=Math.hypot(b[0]-a[0],b[1]-a[1]);}
+    if(isHand)len=Math.max(len,11.9*1.25);
+    const nn=[-u[1],u[0]],bend=isPaw?len*.13*sideSign:0;
+    // 중심선(휘어짐 포함)과 반폭
+    const C=t=>{const a=t*len,b=bend*Math.sin(Math.PI*Math.max(0,t));return[e[0]+u[0]*a+nn[0]*b,e[1]+u[1]*a+nn[1]*b];};
+    const w0=LW*.5,wE=LW*.3,flare=LW*(isHand?.62:.56),back=LW*(isHand?.95:.5);
+    const W=t=>t<0?w0+(flare-w0)*Math.pow(-t*len/back,2):wE+(w0-wE)*Math.pow(1-t,1.4);
+    const T=[];for(let k=0;k<=6;k++)T.push(-back/len*(1-k/6));for(let k=1;k<=18;k++)T.push(k/18);
+    const L=[],R=[];for(const t of T){const p=C(t),q=C(Math.min(1,t+.01)),pp=C(Math.max(-1,t-.01)),dx=q[0]-pp[0],dy=q[1]-pp[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l,w=W(t);
+      L.push([p[0]+nx*w,p[1]+ny*w]);R.push([p[0]-nx*w,p[1]-ny*w]);}
+    c.beginPath();L.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));
+    const end=C(1),pe=C(.98),ang=Math.atan2(end[1]-pe[1],end[0]-pe[0]);c.arc(end[0],end[1],wE,ang+Math.PI/2,ang-Math.PI/2,true);
+    R.reverse().forEach(p=>c.lineTo(...p));c.closePath();c.fill();}}
+function drawBody(c,k){c.save();xf(c,st.body,k);
+  const p=st.shape==='artist'?PATH.body.fill:shapePath(st.shape);
+  if(p){outline(c,p,'body',st.body);c.clip(p,st.shape==='artist'?'evenodd':'nonzero');drawMat(c,k);}
+  c.restore();}
+function drawMouthType(c,type,o){const P=MPATH[type];
+  // 1) 입 바깥 테두리(혀가 입 밖으로 나온 부분 포함) → 2) 입안 색
+  outline(c,P.inside,'mouth',o);if(P.tongue)outline(c,P.tongue,'mouth',o);
+  c.fillStyle=st.inside;c.fill(P.inside);
+  // 3) 혀 테두리를 입안 위에 한 번 더 → 혀와 입안이 만나는 곳에도 선이 보임
+  if(P.tongue){outline(c,P.tongue,'mouth',o);c.fillStyle=st.tongue;c.fill(P.tongue);}if(P.groove){c.lineCap='round';c.strokeStyle=INK;c.lineWidth=LWPX('mouth')*0.8/o.scale;c.stroke(P.groove);}// 4) 이빨: 얇은 테두리(입 테두리의 절반) 후 흰색
+  c.lineJoin='round';c.strokeStyle=INK;c.lineWidth=LWPX('mouth')*1.0/o.scale;c.stroke(P.teeth);
+  c.fillStyle='#ffffff';c.fill(P.teeth,'evenodd');}
+function drawMouth(c,k){c.save();xf(c,st.mouth,k);drawMouthType(c,st.mouthType,st.mouth);c.restore();}
+function bbox(key){const o=st[key];if(key==='stk')return stkCv?{w:stkCv.width,h:stkCv.height}:null;if(key==='tex'){const m=mats[st.mat];return m.img?{w:m.img.width,h:m.img.height}:null;}
+  if(key==='body'&&st.shape!=='artist'){const c=custom.find(x=>x.id===st.shape);return c&&c.w?{w:c.w,h:c.h}:{w:620,h:620};}if(key==='mouth'){const m=PARTS.mouths[st.mouthType];return{w:m.w+30,h:m.h+30};}if(key.startsWith('leg')){const d=footDef(key);return{w:d.w+30,h:d.h+30};}return{w:PARTS[key].w+30,h:PARTS[key].h+30};}
+function render(c,k,showSel){c.setTransform(k,0,0,k,0,0);c.clearRect(0,0,1000,1000);
+  if(st.bg==='photo'&&bgImg){const s2=Math.max(1000/bgImg.width,1000/bgImg.height);c.drawImage(bgImg,(1000-bgImg.width*s2)/2,(1000-bgImg.height*s2)/2,bgImg.width*s2,bgImg.height*s2);}
+  else if(st.bg!=='clear'&&st.bg!=='photo'){c.fillStyle=st.bg;c.fillRect(0,0,1000,1000);}
+  for(const g of st.order){
+    if(g==='leg'){drawLimb(c,'legL',st.legColor,k);drawLimb(c,'legR',st.legColor,k);}
+    else if(g==='body')drawBody(c,k);
+    else if(g==='hand'){drawLimb(c,'handL',st.handColor,k);drawLimb(c,'handR',st.handColor,k);}
+    else if(g==='mouth')drawMouth(c,k);
+    else if(g==='stk'&&stkCv&&st.stk){const im=stkImage();c.save();xf(c,st.stk,k);c.drawImage(im,-im.width/2,-im.height/2);c.restore();}}
+  if(!showSel)return;
+  const keys=[st.sel];const g=GROUP(st.sel);if(g&&st.link[g])keys.push(PAIR[st.sel]);
+  for(const key of keys){const b=bbox(key);if(!b)continue;const o=key==='tex'?st.tex:st[key];
+    c.save();xf(c,o,k);c.setLineDash([10/o.scale,8/o.scale]);c.lineWidth=3/o.scale;c.strokeStyle='#43B5E9';c.strokeRect(-b.w/2,-b.h/2,b.w,b.h);c.restore();}}
+/* ---------- 작업 상태: 저장·불러오기·되돌리기 ---------- */
+// 재료는 순서가 바뀔 수 있어서 '이름/종류'로 기억한다
+function matKey(m){return m.color?{t:'solid',n:m.name}:m.pat?{t:'pat',n:m.name}:{t:'photo'};}
+function patColors(){return mats.filter(m=>m.pat).map(m=>[m.name,m.bg,m.fg]);}
+function applyPatColors(list){for(const [n,b,f] of list||[]){const m=mats.find(x=>x.pat&&x.name===n);if(m&&(m.bg!==b||m.fg!==f)){m.bg=b;m.fg=f;m.img=patImg(m);m.thumb=thumbOf(m.img);}}}
+function lightState(){const {sel,...rest}=st;return {s:JSON.stringify(rest),p:JSON.stringify(patColors()),m:mats[st.mat],bg:bgImg};}
+function smallURL(cv,max){if(!cv)return null;const sc=Math.min(1,max/Math.max(cv.width,cv.height));return mk(Math.round(cv.width*sc),Math.round(cv.height*sc),(g,w,h)=>g.drawImage(cv,0,0,w,h)).toDataURL('image/jpeg',.78);}
+// 다시 열 수 있는 저장용(사진은 작게 줄여서 같이)
+function fullState(){const {sel,...rest}=st,m=mats[st.mat];return {v:1,st:rest,mat:matKey(m),pats:patColors(),photo:m.color||m.pat?null:smallURL(m.img,800),bgPhoto:st.bg==='photo'?smallURL(bgImg,800):null};}
+function urlToCanvas(u){return new Promise(res=>{if(!u)return res(null);const im=new Image();im.onload=()=>res(mk(im.width,im.height,g=>g.drawImage(im,0,0)));im.onerror=()=>res(null);im.src=u;});}
+function refreshUI(){renderMouths();renderFeet();renderShapes();renderMats();drawSwatches();renderLayers();
+  $$('#bgSeg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===st.bg));$('#board').classList.toggle('clear',st.bg==='clear');
+  $('#board').style.background=st.bg==='clear'||st.bg==='photo'?'':st.bg;}
+async function loadState(S,msg){if(!S||!S.st)return;restoring=true;
+  st={...defaults(),...S.st,sel:'handL'};applyPatColors(S.pats);
+  let idx=-1;if(S.mat&&S.mat.t==='photo'){const c=await urlToCanvas(S.photo);if(c){mats.splice(SOLIDS.length,0,{name:'내 사진',img:c,thumb:thumbOf(c)});idx=SOLIDS.length;}}
+  else if(S.mat)idx=mats.findIndex(m=>(S.mat.t==='solid'?m.color:m.pat)&&m.name===S.mat.n);
+  st.mat=idx>=0?idx:0;
+  if(st.bg==='photo'){const c=await urlToCanvas(S.bgPhoto);if(c)bgImg=c;else st.bg='clear';}
+  if(st.shape!=='artist'&&!BASIC.some(b=>b.id===st.shape)&&!custom.some(c=>c.id===st.shape))st.shape='artist';
+  refreshUI();restoring=false;histReset();draw();if(msg)toast(msg);}
+// 되돌리기: 바뀐 뒤 잠깐 멈추면(손을 떼면) 한 단계로 기록
+var hist=[],hpos=-1,restoring=false,htimer=0;
+function sameState(a,b){return a&&b&&a.s===b.s&&a.p===b.p&&a.m===b.m&&a.bg===b.bg;}
+function histReset(){hist=[lightState()];hpos=0;updUndo();}
+function commitHist(){if(restoring)return;const cur=lightState();if(sameState(cur,hist[hpos]))return;hist=hist.slice(0,hpos+1);hist.push(cur);if(hist.length>60)hist.shift();hpos=hist.length-1;updUndo();autosave();}
+function updUndo(){$('#undo').disabled=hpos<=0;$('#redo').disabled=hpos>=hist.length-1;}
+function goHist(d){const n=hpos+d;if(n<0||n>=hist.length)return;clearTimeout(htimer);hpos=n;const h=hist[n],sel=st.sel;restoring=true;
+  st={...JSON.parse(h.s),sel};applyPatColors(JSON.parse(h.p));const mi=mats.indexOf(h.m);st.mat=mi>=0?mi:0;bgImg=h.bg;refreshUI();
+  restoring=false;updUndo();draw();autosave();}
+$('#undo').onclick=()=>goHist(-1);$('#redo').onclick=()=>goHist(1);
+// 마지막 작업 자동 보관: 다음에 열면 이어서
+var atimer=0;function autosave(){clearTimeout(atimer);atimer=setTimeout(()=>{try{localStorage.setItem('eLast1',JSON.stringify(fullState()));}catch(e){try{const f=fullState();f.photo=null;f.bgPhoto=null;localStorage.setItem('eLast1',JSON.stringify(f));}catch(e2){}}},800);}
+let raf=0;function draw(){if(!restoring){clearTimeout(htimer);htimer=setTimeout(commitHist,450);}if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render(ctx,1,true);sync();});}
+
+/* ---------- 선택·슬라이더 ---------- */
+function baseScale(key){if(key==='stk')return st.stk?st.stk.base:1;if(key==='tex'){const m=mats[st.mat];return m.img?Math.max(1000/m.img.width,1000/m.img.height):1;}return K;}
+function obj(key){return key==='tex'?st.tex:st[key];}
+function setScale(key,s){obj(key).scale=s;const g=GROUP(key);if(g&&st.link[g])st[PAIR[key]].scale=s;}
+function setRot(key,r){obj(key).rot=r;const g=GROUP(key);if(g&&st.link[g])st[PAIR[key]].rot=-r;}
+function move(key,dx,dy){const o=obj(key);o.x+=dx;o.y+=dy;const g=GROUP(key);if(g&&st.link[g]){st[PAIR[key]].x-=dx;st[PAIR[key]].y+=dy;}}
+function sync(){const key=st.sel,o=obj(key);const pct=Math.round(o.scale/baseScale(key)*100);$('#sz').value=pct;$('#szv').textContent=pct+'%';
+  const deg=Math.round(((o.rot*180/Math.PI+540)%360)-180);$('#rt').value=deg;$('#rtv').textContent=deg+'°';
+  const g=GROUP(key);$('#linkRow').hidden=!g;if(g){$('#link').checked=st.link[g];$('#linkTxt').textContent=g==='hand'?'두 손 같이 움직이기':'두 발 같이 움직이기';}
+  const tg=$('#target');const opts=[['tex','재료'],['body','몸통']];if(!['tex','body'].includes(key))opts.push([key,LABEL[key]+(g&&!st.link[g]?(key.endsWith('L')?' (왼쪽)':' (오른쪽)'):'')]);
+  const sig=opts.map(o=>o[0]).join()+key+(g?st.link[g]:'');if(tg.dataset.sig!==sig){tg.dataset.sig=sig;tg.innerHTML='';opts.forEach(([k,n])=>{const b=document.createElement('button');b.textContent=n;b.setAttribute('aria-pressed',k===key);b.onclick=()=>select(k);tg.appendChild(b);});}
+  const off=(key==='tex'&&mats[st.mat].color)||!!st.locked[layerOf(key)];$('#sz').disabled=$('#rt').disabled=off;if(typeof syncPat==='function')syncPat();}
+function select(k){st.sel=k;draw();}
+$('#sz').oninput=e=>{setScale(st.sel,baseScale(st.sel)*e.target.value/100);draw();};
+$('#rt').oninput=e=>{setRot(st.sel,e.target.value*Math.PI/180);draw();};
+$('#link').onchange=e=>{const g=GROUP(st.sel);if(g){st.link[g]=e.target.checked;draw();}};
+$$('[data-sel]').forEach(b=>b.onclick=()=>select(b.dataset.sel));
+
+/* ---------- 제스처 ---------- */
+const hc=document.createElement('canvas').getContext('2d');
+function hit(pt){
+  const test=(key,path)=>{const o=st[key];hc.setTransform(new DOMMatrix().translate(o.x,o.y).rotate(o.rot*180/Math.PI).scale(o.scale));return hc.isPointInPath(path,pt.x,pt.y);};
+  // 앞 레이어부터 확인. 잠긴 레이어는 손가락이 통과한다.
+  for(const g of [...st.order].reverse()){if(st.locked[g])continue;
+    if(g==='stk'&&stkCv&&st.stk){const o=st.stk,m=new DOMMatrix().translate(o.x,o.y).rotate(o.rot*180/Math.PI).scale(o.scale).inverse(),q=m.transformPoint(new DOMPoint(pt.x,pt.y)),ix=Math.round(q.x+stkCv.width/2),iy=Math.round(q.y+stkCv.height/2);if(ix>=0&&iy>=0&&ix<stkCv.width&&iy<stkCv.height&&stkA[iy*stkCv.width+ix]>40)return'stk';}
+    if(g==='mouth'&&test('mouth',MPATH[st.mouthType].line))return'mouth';
+    if(g==='hand'){if(test('handR',PATH.handR.line))return'handR';if(test('handL',PATH.handL.line))return'handL';}
+    if(g==='body'){const bp=st.shape==='artist'?PATH.body.line:shapePath(st.shape);if(bp&&test('body',bp))return'body';}
+    if(g==='leg'){if(test('legR',pathOf('legR').line))return'legR';if(test('legL',pathOf('legL').line))return'legL';}}
+  return null;}
+const ptrs=new Map();let g0=null;
+function cpos(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*1000/r.width,y:(e.clientY-r.top)*1000/r.height};}
+function gstart(){const o=obj(st.sel),a=[...ptrs.values()];
+  if(a.length>=2)g0={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),a:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x),s:o.scale,r:o.rot,cx:(a[0].x+a[1].x)/2,cy:(a[0].y+a[1].y)/2};
+  else if(a.length===1)g0={px:a[0].x,py:a[0].y};else g0=null;}
+// 끌 수 있는 대상: 손·발·입은 바로 잡히고, 몸통·재료는 아래에서 직접 골랐을 때만 잡힌다.
+// 그 밖(빈 곳, 고르지 않은 몸통)은 화면 스크롤로 넘긴다.
+function grabTarget(pt){const h=hit(pt);
+  if(h&&h!=='body')return h;
+  if(st.sel==='tex'&&!st.locked.body)return'tex';
+  if(st.sel==='body'&&h==='body')return'body';
+  return null;}
+cv.addEventListener('touchstart',e=>{const r=cv.getBoundingClientRect(),t=e.touches[0];
+  if(e.touches.length>1&&ptrs.size){e.preventDefault();return;}
+  const pt={x:(t.clientX-r.left)*1000/r.width,y:(t.clientY-r.top)*1000/r.height};
+  if(grabTarget(pt))e.preventDefault();},{passive:false});
+cv.addEventListener('pointerdown',e=>{const pt=cpos(e);
+  if(ptrs.size===0){const g=grabTarget(pt);if(!g)return;st.sel=g;draw();}
+  cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,pt);gstart();});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId)||!g0)return;ptrs.set(e.pointerId,cpos(e));const a=[...ptrs.values()];
+  if(a.length>=2&&g0.d){const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),an=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x),cx=(a[0].x+a[1].x)/2,cy=(a[0].y+a[1].y)/2;
+    setScale(st.sel,Math.max(.05,g0.s*d/g0.d));setRot(st.sel,g0.r+an-g0.a);move(st.sel,cx-g0.cx,cy-g0.cy);g0.cx=cx;g0.cy=cy;}
+  else if(a.length===1&&g0.px!==undefined){move(st.sel,a[0].x-g0.px,a[0].y-g0.py);g0.px=a[0].x;g0.py=a[0].y;}draw();});
+const pend=e=>{ptrs.delete(e.pointerId);gstart();};
+cv.addEventListener('pointerup',pend);cv.addEventListener('pointercancel',pend);
+cv.addEventListener('wheel',e=>{e.preventDefault();const o=obj(st.sel);setScale(st.sel,Math.max(.05,o.scale*(e.deltaY<0?1.05:1/1.05)));draw();},{passive:false});
+
+/* ---------- 탭 ---------- */
+// 휴대폰: 고정된 캔버스 영역 높이를 탭 메뉴 위치로 넘긴다
+const stageEl=$('.stage'),mqMobile=matchMedia('(max-width:880px)');
+function syncStageH(){document.documentElement.style.setProperty('--stage-h',mqMobile.matches?stageEl.offsetHeight+'px':'0px');}
+try{new ResizeObserver(syncStageH).observe(stageEl);}catch(e){}addEventListener('resize',syncStageH);syncStageH();
+// 탭을 바꾸면 새 탭 내용이 탭 메뉴 바로 밑에서 시작하도록 스크롤
+function scrollPaneTop(){if(!mqMobile.matches)return;const panel=$('.panel');
+  const want=panel.getBoundingClientRect().top+scrollY-stageEl.offsetHeight;if(scrollY>want)scrollTo({top:want});}
+$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));$$('.pane').forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab);scrollPaneTop();
+  const t=b.dataset.tab;if(t==='limb'&&!GROUP(st.sel))select('handL');if(t==='mouth')select('mouth');if(t==='body'&&!['body','tex'].includes(st.sel))select('body');if(t==='out')renderBoard();});
+
+/* ---------- 몸통 틀 그리드 ---------- */
+function shapeThumb(id){return mk(120,120,g=>{g.translate(60,60);
+  if(id==='artist'){const b=PARTS.body;const s=100/b.w;g.scale(s,s);g.fillStyle=INK;g.fill(PATH.body.line);g.fillStyle='#43B5E9';g.fill(PATH.body.fill,'evenodd');}
+  else{const p=shapePath(id);if(!p)return;const c=custom.find(x=>x.id===id),z=c&&c.w?Math.min(.16,100/Math.max(c.w,c.h)):.16;g.scale(z,z);g.lineJoin='round';g.lineWidth=40;g.strokeStyle=INK;g.stroke(p);g.fillStyle='#43B5E9';g.fill(p);}});}
+function renderShapes(){const gr=$('#shapeGrid');gr.innerHTML='';
+  [...BASIC,...custom].forEach(s=>{const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',s.id===st.shape);b.title=s.name;
+    b.appendChild(shapeThumb(s.id));const nm=document.createElement('span');nm.className='nm';nm.textContent=s.name;b.appendChild(nm);
+    b.onclick=()=>{st.shape=s.id;select('body');renderShapes();};
+    if(custom.includes(s)){const x=document.createElement('span');x.className='x';x.textContent='×';x.setAttribute('role','button');x.setAttribute('aria-label',s.name+' 삭제');x.onclick=ev=>{ev.stopPropagation();removeCustom(s);};b.appendChild(x);}
+    gr.appendChild(b);});
+  const add=document.createElement('button');add.className='tile add';add.textContent='+';add.setAttribute('aria-label','내 틀 그리기 열기');add.onclick=()=>{$('#drawBox').open=true;$('#pad').scrollIntoView({behavior:'smooth',block:'center'});};gr.appendChild(add);}
+
+/* ---------- 입 모양 그리드 ---------- */
+function renderMouths(){const gr=$('#mouthGrid');gr.innerHTML='';
+  for(const k in PARTS.mouths){const m=PARTS.mouths[k];const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',k===st.mouthType);b.title=m.name;
+    b.appendChild(mk(120,120,g=>{g.translate(60,58);const s=100/Math.max(...Object.values(PARTS.mouths).map(v=>v.w));const o={scale:s};g.scale(s,s);drawMouthType(g,k,o);}));
+    const nm=document.createElement('span');nm.className='nm';nm.textContent=m.name;b.appendChild(nm);
+    b.onclick=()=>{st.mouthType=k;select('mouth');renderMouths();};gr.appendChild(b);}}
+
+/* ---------- 발 모양 그리드 ---------- */
+function setFoot(k){const old=st.footType;st.footType=k;
+  for(const key of ['legL','legR']){const d=footDef(key,k),o=st[key],ratio=o.scale/K;o.x=MX(d.x);o.y=MY(d.y);o.scale=K*ratio;o.rot=0;}
+  // 하트 발바닥은 몸 앞, 나머지는 몸 뒤에 기본 배치
+  if(PARTS.feet[k].front!==PARTS.feet[old].front){st.order=st.order.filter(g=>g!=='leg');const bi=st.order.indexOf('body');st.order.splice(PARTS.feet[k].front?bi+1:bi,0,'leg');}
+  renderFeet();renderLayers();}
+function renderFeet(){const gr=$('#footGrid');if(!gr)return;gr.innerHTML='';
+  for(const k in PARTS.feet){const f=PARTS.feet[k];const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',k===st.footType);b.title=f.name;
+    b.appendChild(mk(120,120,g=>{const L=f.L,R=f.R,x0=Math.min(L.x-L.w/2,R.x-R.w/2),x1=Math.max(L.x+L.w/2,R.x+R.w/2),y0=Math.min(L.y-L.h/2,R.y-R.h/2),y1=Math.max(L.y+L.h/2,R.y+R.h/2);
+      const s=96/Math.max(x1-x0,y1-y0);g.translate(60,56);g.scale(s,s);g.translate(-(x0+x1)/2,-(y0+y1)/2);
+      for(const sd of ['L','R']){const P=FPATH[k][sd],d=f[sd];g.save();g.translate(d.x,d.y);g.lineJoin='round';g.strokeStyle=INK;g.lineWidth=2*PARTS.legL.lw;g.stroke(P.fill);g.fillStyle=st.legColor;g.fill(P.fill,'evenodd');if(P.detail){g.lineCap='round';g.strokeStyle=INK;g.lineWidth=PARTS.legL.lw*0.85;g.stroke(P.detail);}g.restore();}}));
+    const nm=document.createElement('span');nm.className='nm';nm.textContent=f.name;b.appendChild(nm);
+    b.onclick=()=>{setFoot(k);select('legL');};gr.appendChild(b);}}
+
+/* ---------- 레이어 틀 ---------- */
+const LOCK_SVG=(on)=>on?'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+  :'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+const ARROW=(up)=>`<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="${up?'M6 14l6-6 6 6':'M6 10l6 6 6-6'}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const LAYER_COLOR=g=>g==='stk'?(st.stkColor||'#bbbbbb'):g==='mouth'?st.tongue:g==='hand'?st.handColor:g==='leg'?st.legColor:(mats[st.mat].color||'#cccccc');
+const LAYER_SEL={mouth:'mouth',hand:'handL',leg:'legL',body:'body',stk:'stk'};
+function renderLayers(){const ol=$('#layerList');if(!ol)return;ol.innerHTML='';const front=[...st.order].reverse();
+  front.forEach((g,i)=>{const li=document.createElement('li');if(layerOf(st.sel)===g)li.classList.add('sel');if(st.locked[g])li.classList.add('locked');
+    const nm=document.createElement('button');nm.className='nm';nm.innerHTML=`<span class="dot" style="background:${LAYER_COLOR(g)}"></span>`;nm.appendChild(document.createTextNode(LAYER_NAME[g]+(st.locked[g]?' (잠김)':'')));
+    nm.onclick=()=>{select(LAYER_SEL[g]);renderLayers();};
+    const up=document.createElement('button');up.className='ic';up.innerHTML=ARROW(true);up.setAttribute('aria-label',LAYER_NAME[g]+' 앞으로');up.disabled=i===0;
+    up.onclick=()=>{const j=st.order.indexOf(g);[st.order[j],st.order[j+1]]=[st.order[j+1],st.order[j]];renderLayers();draw();};
+    const dn=document.createElement('button');dn.className='ic';dn.innerHTML=ARROW(false);dn.setAttribute('aria-label',LAYER_NAME[g]+' 뒤로');dn.disabled=i===front.length-1;
+    dn.onclick=()=>{const j=st.order.indexOf(g);[st.order[j],st.order[j-1]]=[st.order[j-1],st.order[j]];renderLayers();draw();};
+    const lk=document.createElement('button');lk.className='ic';lk.innerHTML=LOCK_SVG(!!st.locked[g]);lk.setAttribute('aria-pressed',!!st.locked[g]);lk.setAttribute('aria-label',LAYER_NAME[g]+(st.locked[g]?' 잠금 풀기':' 잠그기'));
+    lk.onclick=()=>{st.locked[g]=!st.locked[g];renderLayers();draw();toast(st.locked[g]?`${LAYER_NAME[g]}을(를) 잠갔어요`:`${LAYER_NAME[g]} 잠금을 풀었어요`);};
+    li.append(nm,up,dn,lk);ol.appendChild(li);});}
+$('#layerBtn').onclick=()=>{renderLayers();$('#layerSheet').hidden=false;};
+$('#layerClose').onclick=()=>$('#layerSheet').hidden=true;
+$('#layerSheet').onclick=e=>{if(e.target.id==='layerSheet')$('#layerSheet').hidden=true;};
+
+/* ---------- 재료 그리드 ---------- */
+function coverTex(){const m=mats[st.mat];if(m.img){st.tex.scale=Math.max(1000/m.img.width,1000/m.img.height)*(st.tile||m.pat?.35:.9);st.tex.x=st.body.x;st.tex.y=st.body.y;st.tex.rot=0;}}
+function renderMats(){const sg=$('#solidGrid'),gr=$('#matGrid');sg.innerHTML='';gr.innerHTML='';mats.forEach((m,i)=>{const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',i===st.mat);b.title=m.name;
+  if(m.color){b.style.background=m.color;}else{const im=document.createElement('img');im.alt='';im.src=m.thumb;b.appendChild(im);}
+  const nm=document.createElement('span');nm.className='nm';nm.textContent=m.name;b.appendChild(nm);
+  b.onclick=()=>{st.mat=i;coverTex();if(!m.color)select('tex');else draw();renderMats();};(m.color?sg:gr).appendChild(b);});
+  syncPat();}
+// 무늬 옵션 줄: 무늬나 사진을 골랐을 때만 보임. 값은 '재료' 크기·회전과 같은 값
+// 무늬 색 팔레트: 몸통 단색 20색 + 흰색 + 먹색
+const PAT_COLORS=[['흰색','#FFFFFF'],['먹색','#2E2A30'],...SOLIDS];
+let patSig='';
+function setPatColor(which,c){const m=mats[st.mat];if(!m.pat)return;m[which]=c;m.img=patImg(m);m.thumb=thumbOf(m.img);patSig='';renderMats();draw();}
+function syncPat(){const m=mats[st.mat],box=$('#patOpt');box.hidden=!!m.color;if(m.color)return;
+  $('#patCol').hidden=!m.pat;
+  if(m.pat){const sig=st.mat+m.bg+m.fg;if(sig!==patSig){patSig=sig;swatchRow('#patBg',PAT_COLORS,()=>m.bg,c=>setPatColor('bg',c));swatchRow('#patFg',PAT_COLORS,()=>m.fg,c=>setPatColor('fg',c));}}
+  $('#tileRow').hidden=!!m.pat;$('#tile').checked=st.tile;
+  const deg=Math.round(((st.tex.rot*180/Math.PI+540)%360)-180);$('#patRot').value=deg;$('#patRotV').textContent=deg+'°';
+  const base=baseScale('tex')*(st.tile||m.pat?.35:.9),pct=Math.round(st.tex.scale/base*100);$('#patSz').value=pct;$('#patSzV').textContent=pct+'%';}
+$('#patReset').onclick=()=>{const m=mats[st.mat];if(!m.pat)return;m.bg=m.bg0;m.fg=m.fg0;m.img=patImg(m);m.thumb=thumbOf(m.img);patSig='';renderMats();draw();};
+$('#rot90').onclick=()=>{let r=st.tex.rot+Math.PI/2;if(r>Math.PI+1e-6)r-=2*Math.PI;st.tex.rot=r;draw();};
+$('#patRot').oninput=e=>{st.tex.rot=e.target.value*Math.PI/180;draw();};
+$('#patSz').oninput=e=>{const m=mats[st.mat];st.tex.scale=baseScale('tex')*(st.tile||m.pat?.35:.9)*e.target.value/100;draw();};
+async function loadFiles(files){let n=0;for(const f of files){try{const url=URL.createObjectURL(f);const im=new Image();im.src=url;await im.decode();
+  const s=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight));const c=mk(Math.round(im.naturalWidth*s),Math.round(im.naturalHeight*s),(g,w,h)=>g.drawImage(im,0,0,w,h));URL.revokeObjectURL(url);
+  mats.splice(SOLIDS.length,0,{name:'내 사진',img:c,thumb:thumbOf(c)});n++;}catch(err){toast('이 파일은 열 수 없어요. JPG나 PNG 사진을 골라 주세요.');}}
+  if(n){st.mat=SOLIDS.length;coverTex();select('tex');renderMats();toast(`사진 ${n}장을 재료로 넣었어요. 끌어서 원하는 부분을 몸통에 맞추세요.`);}}
+$('#camIn').onchange=e=>{loadFiles(e.target.files);e.target.value='';};
+$('#fileIn').onchange=e=>{loadFiles(e.target.files);e.target.value='';};
+$('#tile').onchange=e=>{st.tile=e.target.checked;coverTex();draw();};
+
+/* ---------- 색 견본 ---------- */
+function swatchRow(el,list,get,set){const box=$(el);box.innerHTML='';
+  list.forEach(([n,c])=>{const b=document.createElement('button');b.className='sw';b.style.background=c;b.title=n;b.setAttribute('aria-label',n);b.setAttribute('aria-pressed',get()===c);b.onclick=()=>{set(c);swatchRow(el,list,get,set);draw();};box.appendChild(b);});
+  const p=document.createElement('label');p.className='sw pick';p.title='직접 고르기';const inp=document.createElement('input');inp.type='color';inp.value=get();inp.setAttribute('aria-label','색 직접 고르기');
+  inp.oninput=()=>{set(inp.value.toUpperCase());draw();};inp.onchange=()=>swatchRow(el,list,get,set);p.appendChild(inp);box.appendChild(p);}
+// 입 기본 색
+const INSIDE_COLORS=[['먹색(외곽선색)','#3A3542'],['진한 네온오렌지','#FF6A00'],['남색','#1F2A5C'],['진한 네온핑크','#FF1F8E'],['다크 초콜릿','#4A2A22'],['코발트 블루','#1F4FD1'],['진한 보라','#4B1D7A'],['머스터드','#E0A100'],['딥 틸','#0E5E5E'],['빨강','#D7263D']];
+const TONGUE_COLORS=[['체리 핑크','#E23B6E'],['버블검 핑크','#FF85B3'],['빨강','#E0283A'],['보라 섞인 핑크','#C2569E'],['코랄 핑크','#FF6F61'],['라즈베리','#B0134A'],['수박 핑크','#FF5C77'],['진한 네온핑크','#FF2D95']];
+// 손발 색: 진한 몸통색들 위에서 또렷이 보이도록 몸통 색 가족의 '우유·크림 버전' 파스텔 + 살색 + 초코
+const TONES=[['살구','#F3CBB3'],['라무네','#8FD3F5'],['밀크초코','#9B6B53'],['딸기크림','#FF9DB8'],['멜론바','#A3E38C'],['타로라떼','#BFA8EE'],['바닐라','#FFDF85'],['쿠키앤크림','#B3AEBA'],['민트우유','#90DFC9'],['마시멜로','#F2E9D6']];
+function drawSwatches(){
+  swatchRow('#handSw',TONES,()=>st.handColor,c=>st.handColor=c);
+  swatchRow('#legSw',[['살구','#F9C2A9'],...TONES.slice(1)],()=>st.legColor,c=>st.legColor=c);
+  swatchRow('#inSw',INSIDE_COLORS,()=>st.inside,c=>st.inside=c);
+  swatchRow('#tgSw',TONGUE_COLORS,()=>st.tongue,c=>st.tongue=c);}
+
+/* ---------- 저장소: 내 틀 + 비교 보드 (로그인 시 계정, 아니면 이 브라우저) ---------- */
+let col=null,boardItems=[];
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+function useLocal(){custom=LS.get('eShapes2');boardItems=LS.get('eBoard2');}
+async function putDoc(item){if(col){try{const{id,...rest}=item;await col.doc(id).set(rest);return;}catch(e){toast('계정에 저장하지 못했어요. 이 브라우저에만 남겨둘게요.');}}
+  LS.set('eShapes2',custom);LS.set('eBoard2',boardItems);}
+async function delDoc(id){if(col){try{await col.doc(id).delete();return;}catch(e){}}LS.set('eShapes2',custom);LS.set('eBoard2',boardItems);}
+async function addCustom(s){custom.push(s);renderShapes();st.shape=s.id;select('body');renderShapes();await putDoc({...s,type:'shape'});}
+async function removeCustom(s){custom=custom.filter(c=>c.id!==s.id);if(st.shape===s.id)st.shape='artist';renderShapes();draw();await delDoc(s.id);toast(`'${s.name}' 틀을 지웠어요`);}
+(async()=>{try{if(!window.claude?.use)return;const db=await claude.use('db'),user=await claude.use('user');if(!db||!user)return;const id=await user.id();if(!id)return;
+  col=db.collection('data/users/'+id);
+  col.onSnapshot(snap=>{const docs=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.at||0)-(b.at||0));
+    custom=docs.filter(d=>d.type==='shape');boardItems=docs.filter(d=>d.type==='board');renderShapes();renderBoard();if(st.shape!=='artist'&&!BASIC.some(b=>b.id===st.shape)&&!custom.some(c=>c.id===st.shape)){st.shape='artist';draw();}},()=>{});}catch(e){}})();
+
+/* ---------- 틀 그리기 패드 ---------- */
+const pad=$('#pad'),pc=pad.getContext('2d');let stroke=[],drawing=false,padD=null,padC=[200,200],padWH=[620,620];
+// 패드 400칸 = 몸통 700 (원본 와이드 몸통 폭 600보다 조금 크게). 그린 크기 그대로 몸통 크기가 됨
+const PAD_K=1.75;
+// 닫힌 도형을 x>=ax 쪽만 남기고 자름 (점선 넘어간 부분을 눌러 붙이지 않고 잘라냄)
+function clipRight(v,ax){const o=[];for(let i=0;i<v.length;i++){const a=v[i],b=v[(i+1)%v.length],ia=a[0]>=ax,ib=b[0]>=ax;
+  if(ia)o.push(a);if(ia!==ib){const t=(ax-a[0])/(b[0]-a[0]);o.push([ax,a[1]+t*(b[1]-a[1])]);}}return o;}
+// 잘린 닫힌 도형에서 축 위 점들을 빼고 오른쪽 둘레(가장 긴 구간)만 꺼냄 → 위→아래로 정리
+function rightRun(v,ax){const on=q=>Math.abs(q[0]-ax)<0.75,n=v.length;let k=v.findIndex(on);if(k<0)return v;
+  v=v.slice(k).concat(v.slice(0,k));let best=[],cur=[v[0]];
+  for(let i=1;i<=n;i++){const q=v[i%n];cur.push(q);if(on(q)){if(cur.length>best.length)best=cur;cur=[q];}}
+  return best;}
+function mirrorHalf(h,ax){if(h[0][1]>h[h.length-1][1])h=h.slice().reverse();
+  h=h.map((q,i)=>i===0||i===h.length-1?[ax,q[1]]:[Math.max(ax,q[0]),q[1]]);
+  const m=h.slice(1,-1).reverse().map(q=>[2*ax-q[0],q[1]]);return h.concat(m);}
+function padPaint(){pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,400,400);
+  if($('#sym').checked){pc.setLineDash([6,6]);pc.strokeStyle='#a29cab';pc.lineWidth=1.5;pc.beginPath();pc.moveTo(200,0);pc.lineTo(200,400);pc.stroke();pc.setLineDash([]);}
+  if(padD){pc.save();pc.translate(padC[0],padC[1]);pc.scale(1/PAD_K,1/PAD_K);const p=new Path2D(padD);pc.lineJoin='round';pc.lineWidth=40;pc.strokeStyle=INK;pc.stroke(p);pc.fillStyle='#43B5E9';pc.fill(p);pc.restore();}
+  if(stroke.length>1){pc.strokeStyle=INK;pc.lineWidth=4;pc.lineCap='round';pc.lineJoin='round';pc.beginPath();stroke.forEach((p,i)=>i?pc.lineTo(p[0],p[1]):pc.moveTo(p[0],p[1]));pc.stroke();}}
+function ppos(e){const r=pad.getBoundingClientRect();return[(e.clientX-r.left)*400/r.width,(e.clientY-r.top)*400/r.height];}
+pad.addEventListener('pointerdown',e=>{pad.setPointerCapture(e.pointerId);drawing=true;padD=null;stroke=[ppos(e)];padPaint();});
+pad.addEventListener('pointermove',e=>{if(!drawing)return;const p=ppos(e),l=stroke[stroke.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>5){stroke.push(p);padPaint();}});
+pad.addEventListener('pointerup',()=>{drawing=false;let pts=stroke.slice();if(pts.length<6){stroke=[];padPaint();return;}
+  if($('#sym').checked){
+    const xs0=pts.map(p=>p[0]),ys0=pts.map(p=>p[1]),mn=Math.min(...xs0),mx=Math.max(...xs0),H=Math.max(...ys0)-Math.min(...ys0);
+    // 왼쪽 끝 근처 점들이 세로로 길게 이어지면 '반쪽'(점선 따라 세운 D), 아니면 '모양 전체'
+    const nearY=pts.filter(q=>q[0]-mn<18).map(q=>q[1]),isHalf=mn>=192&&(Math.max(...nearY)-Math.min(...nearY))>0.6*H;
+    let ax,poly;
+    if(mn<192){ax=200;poly=clipRight(pts,ax);}                       // 점선을 넘어 그림 → 점선 오른쪽만
+    else if(isHalf){ax=Math.min(mn,200);poly=pts.map(q=>q[0]-mn<8?[ax,q[1]]:q);} // 반쪽 → 왼쪽 세로선이 축
+    else{ax=(mn+mx)/2;poly=clipRight(pts,ax);}                       // 오른쪽에 모양 전체 → 그 모양 가운데가 축
+    const half=rightRun(poly,ax);if(half.length<3){stroke=[];padPaint();return;}
+    pts=mirrorHalf(half,ax).map(p=>[p[0]-ax+200,p[1]]);}
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),y0=Math.min(...ys),w=Math.max(...xs)-x0||1,h=Math.max(...ys)-y0||1;
+  padC=[x0+w/2,y0+h/2];padWH=[w*PAD_K+60,h*PAD_K+60];
+  pts=chaikin(pts.map(p=>[(p[0]-padC[0])*PAD_K,(p[1]-padC[1])*PAD_K]),2);padD=S(pts);stroke=[];padPaint();});
+$('#sym').onchange=padPaint;$('#padClear').onclick=()=>{stroke=[];padD=null;padPaint();};
+$('#padSave').onclick=()=>{if(!padD){toast('먼저 패드에 틀 모양을 그려 주세요');return;}const name=$('#shapeName').value.trim()||`내 틀 ${custom.length+1}`;
+  addCustom({id:'c'+Date.now().toString(36),name,d:padD,w:Math.round(padWH[0]),h:Math.round(padWH[1]),at:Date.now()});padD=null;$('#shapeName').value='';padPaint();toast(`'${name}' 틀을 저장했어요`);};
+
+/* ---------- 마무리: 배경, 저장, 비교 보드 ---------- */
+$('#bgSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;$$('#bgSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));st.bg=b.dataset.v;
+  $('#board').classList.toggle('clear',st.bg==='clear');$('#board').style.background=st.bg==='clear'?'':st.bg;draw();};
+let bgImg=null;
+/* ---------- 실험: 그림 → 새 파츠 ---------- */
+let stkCv=null,stkA=null,stkFill=null,stkLum=null,stkCache={};
+function stkImage(){const c=st.stkColor;if(!c)return stkCv;if(stkCache[c])return stkCache[c];
+  const w=stkCv.width,h=stkCv.height,out=mk(w,h,g=>g.drawImage(stkCv,0,0)),g=out.getContext('2d'),d=g.getImageData(0,0,w,h),n=parseInt(c.slice(1),16),R=n>>16&255,G=n>>8&255,B=n&255;
+  let sum=0,cnt=0;for(let i=0;i<w*h;i++)if(stkFill[i]){sum+=stkLum[i];cnt++;}const avg=cnt?sum/cnt:200;
+  for(let i=0;i<w*h;i++)if(stkFill[i]){const t=Math.min(1.25,stkLum[i]/avg);d.data[i*4]=Math.min(255,R*t);d.data[i*4+1]=Math.min(255,G*t);d.data[i*4+2]=Math.min(255,B*t);}
+  g.putImageData(d,0,0);return stkCache[c]=out;}
+async function loadStk(f){if(!f)return;try{const url=URL.createObjectURL(f);const im=new Image();im.src=url;await im.decode();URL.revokeObjectURL(url);
+  const sc=Math.min(1,900/Math.max(im.naturalWidth,im.naturalHeight)),W=Math.round(im.naturalWidth*sc),H=Math.round(im.naturalHeight*sc);
+  const c0=mk(W,H,g=>g.drawImage(im,0,0,W,H)),d=c0.getContext('2d').getImageData(0,0,W,H).data;
+  // 1) 바깥 테두리에서 시작해 '하얀 바탕'만 지운다(그림 안쪽 흰색, 예: 이빨은 남김)
+  const lum=new Float32Array(W*H),white=new Uint8Array(W*H),bg=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++){const r=d[i*4],g2=d[i*4+1],b=d[i*4+2],mx=Math.max(r,g2,b),mn=Math.min(r,g2,b);lum[i]=.3*r+.59*g2+.11*b;white[i]=(lum[i]>205&&mx-mn<28)?1:0;}
+  const q=[];for(let x=0;x<W;x++){q.push(x,(H-1)*W+x);}for(let y=0;y<H;y++){q.push(y*W,y*W+W-1);}
+  while(q.length){const i=q.pop();if(bg[i]||!white[i])continue;bg[i]=1;const x=i%W,y=(i/W)|0;if(x>0)q.push(i-1);if(x<W-1)q.push(i+1);if(y>0)q.push(i-W);if(y<H-1)q.push(i+W);}
+  // 2) 남은 부분을 잘라 담고, 먹선/채운 부분 구분(채운 부분만 색 바꾸기)
+  let x0=W,y0=H,x1=0,y1=0;for(let i=0;i<W*H;i++)if(!bg[i]){const x=i%W,y=(i/W)|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  if(x1<=x0){toast('그림을 찾지 못했어요. 흰 바탕에 그린 그림인지 확인해 주세요.');return;}
+  const pad=4,cw=x1-x0+1+pad*2,ch=y1-y0+1+pad*2,out=mk(cw,ch,()=>{}),og=out.getContext('2d'),od=og.createImageData(cw,ch);
+  stkA=new Uint8Array(cw*ch);stkFill=new Uint8Array(cw*ch);stkLum=new Float32Array(cw*ch);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=y*W+x,j=(y-y0+pad)*cw+(x-x0+pad);if(bg[i])continue;
+    // 바탕과 닿은 가장자리는 살짝 투명하게(계단 줄이기)
+    const edge=(x>0&&bg[i-1])||(x<W-1&&bg[i+1])||(y>0&&bg[i-W])||(y<H-1&&bg[i+W]);const a=edge?Math.max(60,Math.min(255,(255-lum[i])*3)):255;
+    od.data[j*4]=d[i*4];od.data[j*4+1]=d[i*4+1];od.data[j*4+2]=d[i*4+2];od.data[j*4+3]=a;stkA[j]=a;stkLum[j]=lum[i];stkFill[j]=(lum[i]>95&&!white[i])?1:0;}
+  og.putImageData(od,0,0);stkCv=out;stkCache={};
+  const base=K*Math.min(1,260/Math.max(cw,ch));st.stk={x:500,y:470,scale:base,rot:0,base};st.stkColor=null;
+  if(!st.order.includes('stk'))st.order.push('stk');renderStkSw();select('stk');renderLayers();toast('새 파츠를 붙였어요. 끌어서 옮겨 보세요');}
+  catch(e){toast('이 그림은 열 수 없어요. JPG나 PNG로 골라 주세요.');}}
+function renderStkSw(){swatchRow('#stkSw',TONES,()=>st.stkColor||'',c=>{st.stkColor=c;});}
+$('#stkOrig').onclick=()=>{st.stkColor=null;renderStkSw();draw();};
+$('#stkIn').onchange=e=>{loadStk(e.target.files[0]);e.target.value='';};
+$('#stkDel').onclick=()=>{stkCv=null;st.stk=null;st.order=st.order.filter(g=>g!=='stk');if(st.sel==='stk')st.sel='handL';renderLayers();draw();};
+async function loadBg(f){if(!f)return;try{const url=URL.createObjectURL(f);const im=new Image();im.src=url;await im.decode();
+  const sc=Math.min(1,2000/Math.max(im.naturalWidth,im.naturalHeight));bgImg=mk(Math.round(im.naturalWidth*sc),Math.round(im.naturalHeight*sc),(g,w,h)=>g.drawImage(im,0,0,w,h));URL.revokeObjectURL(url);
+  st.bg='photo';$$('#bgSeg button').forEach(x=>x.setAttribute('aria-pressed','false'));$('#board').classList.remove('clear');$('#board').style.background='';draw();toast('배경 사진을 깔았어요');}
+  catch(e){toast('이 사진은 열 수 없어요. JPG나 PNG로 골라 주세요.');}}
+$('#bgCam').onchange=e=>{loadBg(e.target.files[0]);e.target.value='';};$('#bgFile').onchange=e=>{loadBg(e.target.files[0]);e.target.value='';};
+function snapshot(size,type){const o=document.createElement('canvas');o.width=o.height=size;const c=o.getContext('2d');const bg=st.bg;
+  if(type==='image/jpeg'&&bg==='clear'){c.fillStyle='#ffffff';c.fillRect(0,0,size,size);}render(c,size/1000,false);return o;}
+$('#save').onclick=async()=>{const o=document.createElement('canvas');o.width=o.height=2000;render(o.getContext('2d'),2,false);
+  const blob=await new Promise(r=>o.toBlob(r,'image/png'));const d=new Date(),p2=n=>String(n).padStart(2,'0');
+  const fname=`E씨_${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}.png`;
+  let dl=null;try{dl=await window.claude?.use?.('downloads');}catch(e){}
+  if(dl){try{await dl.save({filename:fname,data:blob});toast('저장했어요');return;}catch(e){if(e&&e.code==='declined')return;}}
+  showModal(`<img alt="완성된 E씨" src="${o.toDataURL('image/png')}">`,'이미지를 길게 누르거나 오른쪽 클릭해서 저장하세요.');};
+let picked=[];
+$('#toBoard').onclick=async()=>{const item={id:'b'+Date.now().toString(36),type:'board',img:snapshot(320,'image/jpeg').toDataURL('image/jpeg',.82),state:fullState(),at:Date.now()};
+  boardItems.push(item);renderBoard();await putDoc(item);toast('비교 보드에 담았어요. 나중에 ✎ 를 눌러 다시 열 수 있어요');};
+function renderBoard(){const gr=$('#boardGrid');gr.innerHTML='';
+  boardItems.forEach(it=>{const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',picked.includes(it.id));b.setAttribute('aria-label','담은 E씨');
+    const im=document.createElement('img');im.alt='';im.src=it.img;b.appendChild(im);
+    if(it.state){const r=document.createElement('span');r.className='re';r.textContent='✎ 열기';r.setAttribute('role','button');r.setAttribute('aria-label','이 E씨 다시 열어서 고치기');
+      r.onclick=ev=>{ev.stopPropagation();loadState(it.state,'담아둔 E씨를 다시 열었어요. 고친 뒤 다시 담으면 새로 저장돼요');window.scrollTo({top:0,behavior:'smooth'});};b.appendChild(r);}
+    const x=document.createElement('span');x.className='x';x.textContent='×';x.setAttribute('role','button');x.setAttribute('aria-label','보드에서 빼기');
+    x.onclick=async ev=>{ev.stopPropagation();boardItems=boardItems.filter(i=>i.id!==it.id);picked=picked.filter(p=>p!==it.id);renderBoard();await delDoc(it.id);};b.appendChild(x);
+    b.onclick=()=>{picked=picked.includes(it.id)?picked.filter(p=>p!==it.id):[...picked,it.id].slice(-2);renderBoard();
+      if(picked.length===2){const [a,c]=picked.map(id=>boardItems.find(i=>i.id===id));showModal(`<div class="cmp"><img alt="비교 1" src="${a.img}"><img alt="비교 2" src="${c.img}"></div>`,'두 E씨를 나란히 비교 중이에요.');picked=[];renderBoard();}};
+    gr.appendChild(b);});
+  $('#boardHint').textContent=boardItems.length?'두 개를 눌러 고르면 크게 나란히 비교해요. ✎ 열기를 누르면 그 E씨를 다시 열어 고칠 수 있어요.':'아직 담은 E씨가 없어요. 위에서 "비교 보드에 담기"를 눌러 보세요.';}
+function showModal(html,hint){$('#mBody').innerHTML=html;$('#mHint').textContent=hint;$('#modal').hidden=false;}
+$('#mClose').onclick=()=>$('#modal').hidden=true;
+$('#rand').onclick=()=>{const pick=a=>a[Math.floor(Math.random()*a.length)];const keep=st.bg;st=defaults();st.bg=keep;
+  st.shape=pick([...BASIC,...custom]).id;st.mat=Math.floor(Math.random()*mats.length);coverTex();
+  st.handColor=pick(TONES)[1];st.legColor=st.handColor;st.tongue=pick(TONGUE_COLORS)[1];st.inside=pick(INSIDE_COLORS)[1];
+  st.mouthType=pick(Object.keys(PARTS.mouths));renderMouths();setFoot(pick(Object.keys(PARTS.feet)));setScale('handL',K*(0.85+Math.random()*.35));setScale('legL',K*(0.85+Math.random()*.3));renderShapes();renderMats();drawSwatches();draw();};
+$('#reset').onclick=()=>{const keep=st.bg;st=defaults();st.bg=keep;renderMouths();renderFeet();renderShapes();renderMats();drawSwatches();draw();};
+
+let tt=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2400);}
+
+/* ---------- 시작 ---------- */
+useLocal();renderMouths();renderFeet();renderShapes();renderMats();drawSwatches();padPaint();renderBoard();histReset();draw();
+(()=>{let L=null;try{L=JSON.parse(localStorage.getItem('eLast1')||'null');}catch(e){}if(L&&L.st)loadState(L,'지난번 작업을 이어서 열었어요');})();
+</script>

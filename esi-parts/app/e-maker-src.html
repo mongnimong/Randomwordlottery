@@ -69,6 +69,10 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
 .modal img{width:100%;border-radius:10px;background:#fff}
 .cmp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.undoBar{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:2}
+.undoBar button{width:38px;height:34px;border:1.5px solid var(--ink);background:rgba(255,255,255,.92);color:#3a3542;font:700 18px var(--f-body);border-radius:999px;cursor:pointer;padding:0}
+.undoBar button:disabled{opacity:.35;cursor:default}
+.tile .re{position:absolute;left:4px;top:4px;background:rgba(58,53,66,.85);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:2px 7px}
 .layerBtn{position:absolute;top:10px;right:10px;display:flex;gap:6px;align-items:center;border:1.5px solid var(--ink);background:rgba(255,255,255,.92);color:#3a3542;font:600 13px var(--f-body);padding:6px 10px;border-radius:999px;cursor:pointer}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:flex;align-items:flex-end;justify-content:center}
 .sheet-card{background:var(--surface);width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
@@ -111,7 +115,7 @@ input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px sol
   </header>
 
   <section class="stage">
-    <div class="board clear" id="board"><canvas id="cv" width="1000" height="1000" aria-label="E씨 조립 캔버스"></canvas><button class="layerBtn" id="layerBtn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5Z M2 13l10 5 10-5 M2 17.5l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>레이어</button></div>
+    <div class="board clear" id="board"><canvas id="cv" width="1000" height="1000" aria-label="E씨 조립 캔버스"></canvas><div class="undoBar"><button id="undo" aria-label="되돌리기" disabled>↶</button><button id="redo" aria-label="다시하기" disabled>↷</button></div><button class="layerBtn" id="layerBtn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5Z M2 13l10 5 10-5 M2 17.5l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>레이어</button></div>
     <div class="ctrl">
       <div class="row"><span class="label">움직일 대상</span><div class="seg" id="target"></div></div>
       <div class="slide"><span>크기</span><input type="range" id="sz" min="20" max="300" value="100"><span id="szv">100%</span></div>
@@ -382,7 +386,40 @@ function render(c,k,showSel){c.setTransform(k,0,0,k,0,0);c.clearRect(0,0,1000,10
   const keys=[st.sel];const g=GROUP(st.sel);if(g&&st.link[g])keys.push(PAIR[st.sel]);
   for(const key of keys){const b=bbox(key);if(!b)continue;const o=key==='tex'?st.tex:st[key];
     c.save();xf(c,o,k);c.setLineDash([10/o.scale,8/o.scale]);c.lineWidth=3/o.scale;c.strokeStyle='#43B5E9';c.strokeRect(-b.w/2,-b.h/2,b.w,b.h);c.restore();}}
-let raf=0;function draw(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render(ctx,1,true);sync();});}
+/* ---------- 작업 상태: 저장·불러오기·되돌리기 ---------- */
+// 재료는 순서가 바뀔 수 있어서 '이름/종류'로 기억한다
+function matKey(m){return m.color?{t:'solid',n:m.name}:m.pat?{t:'pat',n:m.name}:{t:'photo'};}
+function patColors(){return mats.filter(m=>m.pat).map(m=>[m.name,m.bg,m.fg]);}
+function applyPatColors(list){for(const [n,b,f] of list||[]){const m=mats.find(x=>x.pat&&x.name===n);if(m&&(m.bg!==b||m.fg!==f)){m.bg=b;m.fg=f;m.img=patImg(m);m.thumb=thumbOf(m.img);}}}
+function lightState(){const {sel,...rest}=st;return {s:JSON.stringify(rest),p:JSON.stringify(patColors()),m:mats[st.mat],bg:bgImg};}
+function smallURL(cv,max){if(!cv)return null;const sc=Math.min(1,max/Math.max(cv.width,cv.height));return mk(Math.round(cv.width*sc),Math.round(cv.height*sc),(g,w,h)=>g.drawImage(cv,0,0,w,h)).toDataURL('image/jpeg',.78);}
+// 다시 열 수 있는 저장용(사진은 작게 줄여서 같이)
+function fullState(){const {sel,...rest}=st,m=mats[st.mat];return {v:1,st:rest,mat:matKey(m),pats:patColors(),photo:m.color||m.pat?null:smallURL(m.img,800),bgPhoto:st.bg==='photo'?smallURL(bgImg,800):null};}
+function urlToCanvas(u){return new Promise(res=>{if(!u)return res(null);const im=new Image();im.onload=()=>res(mk(im.width,im.height,g=>g.drawImage(im,0,0)));im.onerror=()=>res(null);im.src=u;});}
+function refreshUI(){renderMouths();renderFeet();renderShapes();renderMats();drawSwatches();renderLayers();
+  $$('#bgSeg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===st.bg));$('#board').classList.toggle('clear',st.bg==='clear');
+  $('#board').style.background=st.bg==='clear'||st.bg==='photo'?'':st.bg;}
+async function loadState(S,msg){if(!S||!S.st)return;restoring=true;
+  st={...defaults(),...S.st,sel:'handL'};applyPatColors(S.pats);
+  let idx=-1;if(S.mat&&S.mat.t==='photo'){const c=await urlToCanvas(S.photo);if(c){mats.splice(SOLIDS.length,0,{name:'내 사진',img:c,thumb:thumbOf(c)});idx=SOLIDS.length;}}
+  else if(S.mat)idx=mats.findIndex(m=>(S.mat.t==='solid'?m.color:m.pat)&&m.name===S.mat.n);
+  st.mat=idx>=0?idx:0;
+  if(st.bg==='photo'){const c=await urlToCanvas(S.bgPhoto);if(c)bgImg=c;else st.bg='clear';}
+  if(st.shape!=='artist'&&!BASIC.some(b=>b.id===st.shape)&&!custom.some(c=>c.id===st.shape))st.shape='artist';
+  refreshUI();restoring=false;histReset();draw();if(msg)toast(msg);}
+// 되돌리기: 바뀐 뒤 잠깐 멈추면(손을 떼면) 한 단계로 기록
+var hist=[],hpos=-1,restoring=false,htimer=0;
+function sameState(a,b){return a&&b&&a.s===b.s&&a.p===b.p&&a.m===b.m&&a.bg===b.bg;}
+function histReset(){hist=[lightState()];hpos=0;updUndo();}
+function commitHist(){if(restoring)return;const cur=lightState();if(sameState(cur,hist[hpos]))return;hist=hist.slice(0,hpos+1);hist.push(cur);if(hist.length>60)hist.shift();hpos=hist.length-1;updUndo();autosave();}
+function updUndo(){$('#undo').disabled=hpos<=0;$('#redo').disabled=hpos>=hist.length-1;}
+function goHist(d){const n=hpos+d;if(n<0||n>=hist.length)return;clearTimeout(htimer);hpos=n;const h=hist[n],sel=st.sel;restoring=true;
+  st={...JSON.parse(h.s),sel};applyPatColors(JSON.parse(h.p));const mi=mats.indexOf(h.m);st.mat=mi>=0?mi:0;bgImg=h.bg;refreshUI();
+  restoring=false;updUndo();draw();autosave();}
+$('#undo').onclick=()=>goHist(-1);$('#redo').onclick=()=>goHist(1);
+// 마지막 작업 자동 보관: 다음에 열면 이어서
+var atimer=0;function autosave(){clearTimeout(atimer);atimer=setTimeout(()=>{try{localStorage.setItem('eLast1',JSON.stringify(fullState()));}catch(e){try{const f=fullState();f.photo=null;f.bgPhoto=null;localStorage.setItem('eLast1',JSON.stringify(f));}catch(e2){}}},800);}
+let raf=0;function draw(){if(!restoring){clearTimeout(htimer);htimer=setTimeout(commitHist,450);}if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render(ctx,1,true);sync();});}
 
 /* ---------- 선택·슬라이더 ---------- */
 function baseScale(key){if(key==='tex'){const m=mats[st.mat];return m.img?Math.max(1000/m.img.width,1000/m.img.height):1;}return K;}
@@ -623,17 +660,19 @@ $('#save').onclick=async()=>{const o=document.createElement('canvas');o.width=o.
   if(dl){try{await dl.save({filename:fname,data:blob});toast('저장했어요');return;}catch(e){if(e&&e.code==='declined')return;}}
   showModal(`<img alt="완성된 E씨" src="${o.toDataURL('image/png')}">`,'이미지를 길게 누르거나 오른쪽 클릭해서 저장하세요.');};
 let picked=[];
-$('#toBoard').onclick=async()=>{const item={id:'b'+Date.now().toString(36),type:'board',img:snapshot(320,'image/jpeg').toDataURL('image/jpeg',.82),at:Date.now()};
-  boardItems.push(item);renderBoard();await putDoc(item);toast('비교 보드에 담았어요');};
+$('#toBoard').onclick=async()=>{const item={id:'b'+Date.now().toString(36),type:'board',img:snapshot(320,'image/jpeg').toDataURL('image/jpeg',.82),state:fullState(),at:Date.now()};
+  boardItems.push(item);renderBoard();await putDoc(item);toast('비교 보드에 담았어요. 나중에 ✎ 를 눌러 다시 열 수 있어요');};
 function renderBoard(){const gr=$('#boardGrid');gr.innerHTML='';
   boardItems.forEach(it=>{const b=document.createElement('button');b.className='tile';b.setAttribute('aria-pressed',picked.includes(it.id));b.setAttribute('aria-label','담은 E씨');
     const im=document.createElement('img');im.alt='';im.src=it.img;b.appendChild(im);
+    if(it.state){const r=document.createElement('span');r.className='re';r.textContent='✎ 열기';r.setAttribute('role','button');r.setAttribute('aria-label','이 E씨 다시 열어서 고치기');
+      r.onclick=ev=>{ev.stopPropagation();loadState(it.state,'담아둔 E씨를 다시 열었어요. 고친 뒤 다시 담으면 새로 저장돼요');window.scrollTo({top:0,behavior:'smooth'});};b.appendChild(r);}
     const x=document.createElement('span');x.className='x';x.textContent='×';x.setAttribute('role','button');x.setAttribute('aria-label','보드에서 빼기');
     x.onclick=async ev=>{ev.stopPropagation();boardItems=boardItems.filter(i=>i.id!==it.id);picked=picked.filter(p=>p!==it.id);renderBoard();await delDoc(it.id);};b.appendChild(x);
     b.onclick=()=>{picked=picked.includes(it.id)?picked.filter(p=>p!==it.id):[...picked,it.id].slice(-2);renderBoard();
       if(picked.length===2){const [a,c]=picked.map(id=>boardItems.find(i=>i.id===id));showModal(`<div class="cmp"><img alt="비교 1" src="${a.img}"><img alt="비교 2" src="${c.img}"></div>`,'두 E씨를 나란히 비교 중이에요.');picked=[];renderBoard();}};
     gr.appendChild(b);});
-  $('#boardHint').textContent=boardItems.length?'두 개를 눌러 고르면 크게 나란히 비교해요.':'아직 담은 E씨가 없어요. 위에서 "비교 보드에 담기"를 눌러 보세요.';}
+  $('#boardHint').textContent=boardItems.length?'두 개를 눌러 고르면 크게 나란히 비교해요. ✎ 열기를 누르면 그 E씨를 다시 열어 고칠 수 있어요.':'아직 담은 E씨가 없어요. 위에서 "비교 보드에 담기"를 눌러 보세요.';}
 function showModal(html,hint){$('#mBody').innerHTML=html;$('#mHint').textContent=hint;$('#modal').hidden=false;}
 $('#mClose').onclick=()=>$('#modal').hidden=true;
 $('#rand').onclick=()=>{const pick=a=>a[Math.floor(Math.random()*a.length)];const keep=st.bg;st=defaults();st.bg=keep;
@@ -645,5 +684,6 @@ $('#reset').onclick=()=>{const keep=st.bg;st=defaults();st.bg=keep;renderMouths(
 let tt=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2400);}
 
 /* ---------- 시작 ---------- */
-useLocal();renderMouths();renderFeet();renderShapes();renderMats();drawSwatches();padPaint();renderBoard();draw();
+useLocal();renderMouths();renderFeet();renderShapes();renderMats();drawSwatches();padPaint();renderBoard();histReset();draw();
+(()=>{let L=null;try{L=JSON.parse(localStorage.getItem('eLast1')||'null');}catch(e){}if(L&&L.st)loadState(L,'지난번 작업을 이어서 열었어요');})();
 </script>
